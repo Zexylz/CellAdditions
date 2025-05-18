@@ -1,0 +1,20 @@
+## Interface: 100200
+## Title: Cell Additions
+## Notes: Additional features for the Cell addon
+## Author: Semlock
+## Version: 1.0
+## Dependencies: Cell
+## SavedVariables: CellAdditionsDB
+## X-Cell-Category: Utilities
+
+# Core files
+cell-additions.lua
+
+# API
+API\FrameState.lua
+API\UI.lua
+API\Shadow.lua
+
+# Modules
+Modules\Clicker.lua
+Modules\EnhancedShadow.lua
