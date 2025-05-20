@@ -12,9 +12,7 @@ cell-additions.lua
 
 # API
 API\FrameState.lua
-API\UI.lua
-API\Shadow.lua
-
+API\UIFrames.lua
 # Modules
+Modules\Shadow.lua
 Modules\Clicker.lua
-Modules\EnhancedShadow.lua

@@ -1,5 +1,42 @@
 local addonName, ns = ...
 
+-- Create addon table
+local CellAdditions = {}
+ns.addon = CellAdditions
+
+-- Store references
+CellAdditions.Cell = _G.Cell
+CellAdditions.L = CellAdditions.Cell and CellAdditions.Cell.L or {}
+CellAdditions.F = CellAdditions.Cell and CellAdditions.Cell.funcs or {}
+CellAdditions.P = CellAdditions.Cell and CellAdditions.Cell.pixelPerfectFuncs or {}
+
+-- Initialize function
+function CellAdditions:Initialize()
+	if not self.Cell then
+		print("CellAdditions: Cell addon not found!")
+		return
+	end
+
+	-- Initialize UI Frames API if available
+	if ns.UIFrames and ns.UIFrames.Initialize then
+		ns.UIFrames:Initialize()
+	end
+	
+	-- Initialize modules
+	-- if self.shadow then -- Removed old self.shadow:Initialize() as new Shadow.lua doesn't use it.
+	--	self.shadow:Initialize()
+	-- end
+end
+
+-- Event frame
+local f = CreateFrame("Frame")
+f:RegisterEvent("ADDON_LOADED")
+f:SetScript("OnEvent", function(self, event, addon)
+	if addon == addonName then
+		CellAdditions:Initialize()
+	end
+end)
+
 -- Get references to Cell
 local Cell = _G.Cell
 local L = Cell and Cell.L or {}
@@ -11,6 +48,46 @@ ns.Cell = Cell
 
 -- Modules table to store all registered modules
 ns.modules = {}
+
+-- Shadow options - initialize default settings
+ns.shadowOptions = {
+	enabled = true,
+	size = 5,
+	
+	-- Cell frames
+	partyFrames = false,
+	partyHealthColor = {0.7, 0.9, 0.3, 1},
+	partyPowerColor = {0.9, 0.7, 0.3, 1},
+	
+	raidFrames = false,
+	raidHealthColor = {0.9, 0.7, 0.3, 1},
+	raidPowerColor = {0.9, 0.5, 0.3, 1},
+	
+	soloFrame = false,
+	soloHealthColor = {0.7, 0.9, 0.3, 1},
+	soloPowerColor = {0.9, 0.7, 0.3, 1},
+	
+	-- Unit frames
+	playerFrame = false,
+	playerHealthColor = {0.7, 0.9, 0.3, 1},
+	playerPowerColor = {0.9, 0.7, 0.3, 1},
+	
+	targetFrame = false,
+	targetHealthColor = {0.9, 0.7, 0.3, 1},
+	targetPowerColor = {0.9, 0.5, 0.3, 1},
+	
+	targettargetFrame = false,
+	targettargetHealthColor = {0.9, 0.3, 0.5, 1},
+	targettargetPowerColor = {0.9, 0.3, 0.5, 1},
+	
+	focusFrame = false,
+	focusHealthColor = {0.7, 0.3, 0.7, 1},
+	focusPowerColor = {0.5, 0.3, 0.7, 1},
+	
+	petFrame = false,
+	petHealthColor = {0.5, 0.3, 0.7, 1},
+	petPowerColor = {0.5, 0.3, 0.7, 1},
+}
 
 -- Helper function to ensure our tab shows its pressed state
 local function UpdateAdditionsButtonState(show)
@@ -33,11 +110,11 @@ local function InitDB()
 	if not CellAdditionsDB then
 		CellAdditionsDB = {
 			enabled = true,
-			shadowEnabled = true,
+			shadowEnabled = true, -- This might be a general toggle for all shadows
 			clickerEnabled = true,
 			debug = true, -- Enable debug by default for testing
 			currentTab = "raidTools",
-			-- Shadow module default settings
+			-- Shadow module default settings (these seem distinct from shadowConfig)
 			shadowSize = 4,
 			shadowColor = { r = 0, g = 0, b = 0, a = 1 },
 			shadowBars = {
@@ -50,8 +127,23 @@ local function InitDB()
 			shadowQuality = 3,
 			shadowOffsetX = 0,
 			shadowOffsetY = 0,
+
+			-- NEW: shadowConfig for AceConfig panel from Shadow.lua
+			shadowConfig = {
+				enableShadow = true,
+				shadowSize = 5,
+				partyFrames = true,
+				raidFrames = false,
+				unitFrames = {
+					Player = true,
+					Target = false,
+					TargetTarget = false,
+					Focus = false,
+					Pet = false,
+				}
+			}
 		}
-		Debug("Created default settings")
+		Debug("Created default settings, including shadowConfig.")
 	else
 		-- Make sure all expected fields exist
 		if CellAdditionsDB.shadowEnabled == nil then
@@ -64,7 +156,7 @@ local function InitDB()
 			CellAdditionsDB.debug = true -- Enable debug by default for testing
 		end
 
-		-- Initialize Shadow module settings if they don't exist
+		-- Initialize Shadow module settings if they don't exist (original ones)
 		if CellAdditionsDB.shadowSize == nil then
 			CellAdditionsDB.shadowSize = 4
 		end
@@ -85,6 +177,40 @@ local function InitDB()
 		end
 		if CellAdditionsDB.useRaidButtonShadow == nil then
 			CellAdditionsDB.useRaidButtonShadow = false
+		end
+		
+		-- NEW: Ensure shadowConfig and its sub-tables/defaults exist if DB was already there
+		if CellAdditionsDB.shadowConfig == nil then
+			CellAdditionsDB.shadowConfig = {
+				enableShadow = true,
+				shadowSize = 5,
+				partyFrames = true,
+				raidFrames = false,
+				unitFrames = {
+					Player = true,
+					Target = false,
+					TargetTarget = false,
+					Focus = false,
+					Pet = false,
+				}
+			}
+			Debug("Initialized missing shadowConfig in existing CellAdditionsDB.")
+		else
+			-- Ensure individual fields within shadowConfig have defaults if shadowConfig exists but is partial
+			local sc = CellAdditionsDB.shadowConfig
+			if sc.enableShadow == nil then sc.enableShadow = true end
+			if sc.shadowSize == nil then sc.shadowSize = 5 end
+			if sc.partyFrames == nil then sc.partyFrames = true end
+			if sc.raidFrames == nil then sc.raidFrames = false end
+			if sc.unitFrames == nil then
+				sc.unitFrames = { Player = true, Target = false, TargetTarget = false, Focus = false, Pet = false }
+			else
+				if sc.unitFrames.Player == nil then sc.unitFrames.Player = true end
+				if sc.unitFrames.Target == nil then sc.unitFrames.Target = false end
+				if sc.unitFrames.TargetTarget == nil then sc.unitFrames.TargetTarget = false end
+				if sc.unitFrames.Focus == nil then sc.unitFrames.Focus = false end
+				if sc.unitFrames.Pet == nil then sc.unitFrames.Pet = false end
+			end
 		end
 	end
 end
@@ -120,7 +246,10 @@ end
 -- Function to initialize all modules
 function ns.InitializeModules()
 	Debug("Initializing modules...")
-
+	
+	-- First validate our API modules are loaded
+	ns.ValidateAPIs()
+	
 	-- Loop through all registered modules and initialize them
 	for id, module in pairs(ns.modules) do
 		if type(module.Initialize) == "function" then
@@ -128,6 +257,43 @@ function ns.InitializeModules()
 			module:Initialize()
 		end
 	end
+end
+
+-- Function to validate APIs are properly loaded
+function ns.ValidateAPIs()
+	Debug("Validating API modules...")
+	
+	-- Check for ns.API
+	if not ns.API then
+		Debug("ERROR: API namespace not initialized. Creating it now.")
+		ns.API = {}
+	end
+	
+	-- Check for Shadow API
+	if not ns.API.Shadow then
+		Debug("ERROR: Shadow API not loaded. Attempting to manually load it.")
+		-- Try to reload Shadow API if it's not available
+		local path = "Interface\\AddOns\\CellAdditions\\API\\Shadow.lua"
+		local loadSuccess = pcall(function() 
+			local shadowApi = dofile(path)
+			if shadowApi then
+				Debug("Successfully loaded Shadow API from file")
+			else
+				Debug("Failed to load Shadow API from file")
+			end
+		end)
+		
+		if not loadSuccess then
+			Debug("ERROR: Could not manually load Shadow API. Shadow features may not work.")
+		end
+	else
+		Debug("Shadow API is loaded and available")
+	end
+	
+	-- Check for other APIs as needed
+	-- ...
+	
+	Debug("API validation complete")
 end
 
 -- Helper function to find Cell's utility list frame
@@ -176,6 +342,11 @@ local settingsFrame
 local features = {}
 
 local panel, listFrame, settingsFrame, selected, listButtons = nil, nil, nil, 1, {}
+
+-- Make these variables available in the namespace so modules can access them
+ns.listButtons = listButtons
+ns.selected = selected
+ns.features = features
 
 -- Create our own content tab
 local function CreateAdditionsPanel()
@@ -269,67 +440,75 @@ local function CreateAdditionsPanel()
 	end
 
 	-- Function to show settings for a feature
-	function ShowFeatureSettings(index)
-		-- Clear existing content
-		settingsFrame.scrollFrame.content:SetHeight(1)
-		for _, child in pairs({ settingsFrame.scrollFrame.content:GetChildren() }) do
-			child:Hide()
-		end
-		for _, region in pairs({ settingsFrame.scrollFrame.content:GetRegions() }) do
-			region:Hide()
-		end
+function ShowFeatureSettings(index)
+	-- Clear existing content
+	settingsFrame.scrollFrame.content:SetHeight(1)
+	for _, child in pairs({ settingsFrame.scrollFrame.content:GetChildren() }) do
+		child:Hide()
+	end
+	for _, region in pairs({ settingsFrame.scrollFrame.content:GetRegions() }) do
+		region:Hide()
+	end
 
-		-- Update selected feature
-		selected = index
-		local feature = features[index]
+	-- Update selected feature
+	selected = index
+	local feature = features[index]
 
-		-- Skip creating headers for a cleaner UI
-		local line
+	-- Get accent color
+	local accentColor = GetAccentColor()
 
-		-- Get accent color
-		local accentColor = GetAccentColor()
+	-- Add a horizontal line at the top
+	local line = settingsFrame.scrollFrame.content:CreateTexture(nil, "ARTWORK")
+	line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+	line:SetSize(250, 1)
+	line:SetPoint("TOPLEFT", settingsFrame.scrollFrame.content, "TOPLEFT", 5, -5)
 
-		-- Add a horizontal line at the top
-		local line = settingsFrame.scrollFrame.content:CreateTexture(nil, "ARTWORK")
-		line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
-		line:SetSize(250, 1)
-		line:SetPoint("TOPLEFT", settingsFrame.scrollFrame.content, "TOPLEFT", 5, -5)
-
-		-- Create feature-specific settings
-		local module = ns.modules[feature.id]
-		if module then
-			-- Create an enable checkbox for this feature (skip for Shadow module)
-			local enableCB
-			if module.id ~= "shadow" then
-				enableCB = Cell.CreateCheckButton(
-					settingsFrame.scrollFrame.content,
-					"Enable " .. module.name,
-					function(checked)
-						-- Call the module's SetEnabled function if it exists
-						if module.SetEnabled and type(module.SetEnabled) == "function" then
-							module:SetEnabled(checked)
-						else
-							-- Fallback if module doesn't have SetEnabled function
-							CellAdditionsDB[module.id .. "Enabled"] = checked
-							Debug(module.name .. " " .. (checked and "enabled" or "disabled"))
-						end
-					end
-				)
-				enableCB:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
-				-- Make sure we use the right property name for the enabled state
-				local enabledProperty = module.id .. "Enabled"
-				enableCB:SetChecked(CellAdditionsDB[enabledProperty])
-			else
-				-- For Shadow module, just create a reference point
-				enableCB = line
+	-- Create feature-specific settings
+	local module = ns.modules[feature.id]
+	if module then
+		Debug("Showing settings for module: " .. module.name)
+		
+		-- Special handling for Shadow module - don't create extra checkboxes
+		if module.id == "Shadow" then
+			Debug("Calling CreateSettings for Shadow module")
+			if module.CreateSettings and type(module.CreateSettings) == "function" then
+				module:CreateSettings(settingsFrame.scrollFrame.content)
 			end
+			return -- Early return for Shadow module
+		end
+		
+		-- For other modules, create an enable checkbox with native WoW UI
+		if module.id ~= "Shadow" then
+			local enableCb = CreateFrame("CheckButton", nil, settingsFrame.scrollFrame.content, "UICheckButtonTemplate")
+			enableCb:SetSize(24, 24)
+			enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
+			
+			enableCb.text = enableCb:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+			enableCb.text:SetText("Enable " .. module.name)
+			enableCb.text:SetPoint("LEFT", enableCb, "RIGHT", 2, 0)
+			
+			-- Make sure we use the right property name for the enabled state with proper nil check
+			local enabledProperty = module.id .. "Enabled"
+			enableCb:SetChecked(CellAdditionsDB[enabledProperty] == nil or CellAdditionsDB[enabledProperty])
+			
+			enableCb:SetScript("OnClick", function(self)
+				-- Call the module's SetEnabled function if it exists
+				if module.SetEnabled and type(module.SetEnabled) == "function" then
+					module:SetEnabled(self:GetChecked())
+				else
+					-- Fallback if module doesn't have SetEnabled function
+					CellAdditionsDB[module.id .. "Enabled"] = self:GetChecked()
+					Debug(module.name .. " " .. (self:GetChecked() and "enabled" or "disabled"))
+				end
+			end)
 
 			-- If the module has a CreateSettings function, call it to add more settings
 			if module.CreateSettings and type(module.CreateSettings) == "function" then
-				module:CreateSettings(settingsFrame.scrollFrame.content, enableCB)
+				module:CreateSettings(settingsFrame.scrollFrame.content, enableCb)
 			end
 		end
 	end
+end
 
 	-- Function to highlight a list item
 	function ListHighlightFn(index)
@@ -341,6 +520,9 @@ local function CreateAdditionsPanel()
 		-- Show settings for the selected feature
 		ShowFeatureSettings(index)
 	end
+
+	-- Make the function available in the namespace
+	ns.ListHighlightFn = ListHighlightFn
 
 	-- Load the feature list
 	LoadFeatureList()
@@ -624,8 +806,8 @@ local function AddReplacementUtilitiesButton()
 			if child:IsObjectType("Button") and child.id and child.id == "utilities" then
 				origUtilitiesBtn = child
 				break
-            end
-        end
+			end
+		end
 
 		if not origUtilitiesBtn then
 			Debug("Original Utilities button not found, retrying in 1 second")
@@ -744,8 +926,8 @@ local function AddReplacementUtilitiesButton()
 
 				if not success then
 					Debug("Error showing utility: " .. (errorMsg or "unknown error"))
-        end
-    end)
+				end
+			end)
 		end)
 
 		-- More reliable hover behavior with delayed hide
@@ -974,9 +1156,9 @@ local function RegisterWithCellTabSystem()
 					if child:IsObjectType("Frame") and child:IsVisible() then
 						child:Hide()
 						Debug("Hiding utility child frame")
-        end
-    end
-end
+					end
+				end
+			end
 
 			-- Find the content area of the options frame
 			local contentFrame = Cell.frames.optionsFrame.content
@@ -1025,8 +1207,8 @@ end
 					local height = Cell.frames.additionsPanel.settingsBox:GetHeight() + 100 -- Add padding for title and other elements
 					Debug("Setting options frame height to: " .. height)
 					P.Height(Cell.frames.optionsFrame, height)
-                end
-            end
+				end
+			end
 
 			Cell.frames.additionsPanel:Show()
 			Debug("Showing Additions panel via custom event")
@@ -1035,8 +1217,8 @@ end
 			UpdateAdditionsButtonState(true)
 		else
 			Debug("ERROR: additionsPanel not found!")
-                        end
-                    end)
+		end
+	end)
 
 	-- Add our tab height to Cell's tabHeight table
 	local env = getfenv(Cell.Fire)
@@ -1085,14 +1267,20 @@ local function Initialize()
 	Debug("CellAdditions loaded successfully.")
 
 	-- Initialize the database
-	InitDB()
+	InitDB() -- Ensures CellAdditionsDB and CellAdditionsDB.shadowConfig are ready
 
 	-- Load module files
 	Debug("Loading modules...")
-	-- Modules are loaded automatically via the TOC file
+	-- Modules are loaded automatically via the TOC file (like Shadow.lua)
 
-	-- Initialize all registered modules
-	ns.InitializeModules()
+	-- Initialize all registered modules (this calls module:Initialize() if it exists)
+	-- ns.InitializeModules() -- The new Shadow.lua doesn't have Initialize().
+	-- Let's check if ns.InitializeModules() is still needed for other modules.
+	-- For now, we assume other modules might still use it. If ns.addon.Shadow is populated
+	-- by WoW loading the file, we don't need to call an Initialize on it for AceConfig.
+	if ns.InitializeModules then
+		ns.InitializeModules()
+	end
 
 	-- Populate features from modules
 	PopulateFeatures()
@@ -1105,14 +1293,35 @@ local function Initialize()
 
 	-- Register with Cell's tab system
 	RegisterWithCellTabSystem()
+	
+	-- Setup AceConfig for Shadow Module
+	if ns.addon and ns.addon.Shadow and ns.addon.Shadow.GetOptions then
+		local AceConfig = LibStub("AceConfig-3.0", true)
+		local AceConfigDialog = LibStub("AceConfigDialog-3.0", true)
+
+		if AceConfig and AceConfigDialog then
+			local shadowOptionsTable = ns.addon.Shadow:GetOptions()
+			if shadowOptionsTable then
+				AceConfig:RegisterOptionsTable("CellAdditions_Shadow", shadowOptionsTable)
+				AceConfigDialog:AddToBlizOptions("CellAdditions_Shadow", "Shadows", "CellAdditions")
+				Debug("CellAdditions Shadow options registered with AceConfig and added to Blizzard options.")
+			else
+				Debug("CellAdditions ERROR: Could not get Shadow options table.")
+			end
+		else
+			Debug("CellAdditions ERROR: AceConfig-3.0 or AceConfigDialog-3.0 not found. Shadow options will not be available.")
+		end
+	else
+		Debug("CellAdditions WARN: Shadow module or GetOptions not found. Shadow options panel will not be created.")
+	end
 
 	-- Add additional hooks to ensure our panel is hidden when it should be
 	hooksecurefunc(Cell.frames.optionsFrame, "Hide", function()
 		if Cell.frames.additionsPanel then
 			Cell.frames.additionsPanel:Hide()
 			Debug("Hiding Additions panel due to options frame hide")
-                end
-            end)
+		end
+	end)
 
 	-- Keep the options frame at original width but allow height to adjust
 	C_Timer.After(0.5, function()
@@ -1138,11 +1347,27 @@ frame:SetScript("OnEvent", function(self, event, addon)
 		if addon == addonName then
 			-- Wait a bit to ensure Cell is fully loaded
 			C_Timer.After(2, Initialize)
-        end
-    end
+		end
+	end
 end) 
 
 -- If Cell is already loaded when this addon loads, initialize
 if Cell then
 	C_Timer.After(2, Initialize)
+end
+
+-- Function to get a module's settings frame
+function ns.GetModuleSettingsFrame(moduleId)
+	Debug("Getting settings frame for module: " .. moduleId)
+	
+	-- Make sure the panel exists and has a settings frame
+	if not panel or not panel.settingsFrame then
+		Debug("ERROR: Panel or settings frame not found")
+		return nil
+	end
+	
+	-- Return the settings frame's content
+	local content = panel.settingsFrame.scrollFrame.content
+	print("[DEBUG] ns.GetModuleSettingsFrame returns:", content, type(content), content and content.GetObjectType and content:GetObjectType())
+	return content
 end
