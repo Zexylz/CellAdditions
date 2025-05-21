@@ -43,7 +43,7 @@ end
 -- Event frame
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
-f:SetScript("OnEvent", function(self, event, addon)
+f:SetScript("OnEvent", function(_, event, addon)
 	if addon == addonName then
 		CellAdditions:Initialize()
 	end
@@ -309,19 +309,21 @@ local function GetAccentColor()
 end
 
 -- Variables for list interface
-local listButtons = {}
+local panel = nil
+local listFrame = nil
+local settingsFrame = nil
 local selected = 1
-local listFrame
-local settingsFrame
+local listButtons = {}
 
 -- Features will be populated from modules
 local features = {}
 
-local panel, listFrame, settingsFrame, selected, listButtons = nil, nil, nil, 1, {}
-
 -- Make these variables available in the namespace so modules can access them
-ns.listButtons = listButtons
+ns.panel = panel
+ns.listFrame = listFrame
+ns.settingsFrame = settingsFrame
 ns.selected = selected
+ns.listButtons = listButtons
 ns.features = features
 
 -- Create our own content tab
@@ -811,8 +813,8 @@ local function AddReplacementUtilitiesButton()
 
 		-- Copy any additional points
 		for i = 2, origUtilitiesBtn:GetNumPoints() do
-			local point, relativeTo, relativePoint, xOfs, yOfs = origUtilitiesBtn:GetPoint(i)
-			newUtilitiesBtn:SetPoint(point, relativeTo, relativePoint, xOfs, yOfs)
+			local p, r, rp, x, y = origUtilitiesBtn:GetPoint(i)
+			newUtilitiesBtn:SetPoint(p, r, rp, x, y)
 		end
 
 		-- Make it draggable like the original

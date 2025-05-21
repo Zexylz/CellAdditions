@@ -30,15 +30,15 @@ function UIFrames:CreateSoloFrame(parent)
     -- Make it movable
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self)
+    frame:SetScript("OnDragStart", function(frame)
         if not CellAdditionsDB.UISettings.locked then
-            self:StartMoving()
+            frame:StartMoving()
         end
     end)
-    frame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
+    frame:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
         -- Save position
-        local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
+        local point, relativeTo, relativePoint, xOfs, yOfs = frame:GetPoint()
         if not CellAdditionsDB.framePositions then
             CellAdditionsDB.framePositions = {}
         end

@@ -766,7 +766,7 @@ function Shadow:Initialize()
     
     -- This additional event handling is dedicated to Target frames
     -- which often have issues with shadows
-    eventFrame:HookScript("OnEvent", function(self, event, ...)
+    eventFrame:HookScript("OnEvent", function(_, event, ...)
         if event == "PLAYER_TARGET_CHANGED" then
             -- Wait a moment for the target frame to fully update
             C_Timer.After(0.1, function()
@@ -821,7 +821,7 @@ function Shadow:Initialize()
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("ADDON_LOADED")
     
-    eventFrame:SetScript("OnEvent", function(self, event, ...)
+    eventFrame:SetScript("OnEvent", function(_, event, ...)
         if event == "ADDON_LOADED" and ... == "Cell" then
             C_Timer.After(1, function()
                 if CellAdditionsDB.shadowSettings.enabled then
@@ -857,7 +857,7 @@ function Shadow:Initialize()
     targetFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
     targetFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     
-    targetFrame:SetScript("OnEvent", function(self, event)
+    targetFrame:SetScript("OnEvent", function(_, event)
         -- Wait a moment for target frame to be fully updated
         C_Timer.After(0.2, function()
             -- Always try the direct approach first for CUF_Target
