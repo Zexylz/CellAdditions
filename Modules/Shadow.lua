@@ -268,6 +268,9 @@ function Shadow:ScanForFrames()
     -- Always try to apply shadow to CUF_Target
     self:ApplyShadowToCUFTarget()
     
+    -- Also apply shadow to CUF_Focus
+    self:ApplyShadowToCUFFocus()
+    
     -- Scan for solo frames
     for _, pattern in ipairs(framePatterns.Solo) do
         local frame = _G[pattern]
@@ -620,9 +623,6 @@ local function ApplyShadows()
     Shadow:CleanupShadows()
 end
 
--- Simply add CUF_Target to unitFrameTypes instead of having a special function
--- No additional special code needed
-
 -- Direct method for CUF_Target since it's having issues with the normal way
 function Shadow:ApplyShadowToCUFTarget()
     local frame = _G["CUF_Target"]
@@ -637,7 +637,7 @@ function Shadow:ApplyShadowToCUFTarget()
     if not targetSettings or not targetSettings.enabled then return false end
     
     -- Get shadow size and color
-    local size = settings.shadowSize or 5
+    local size = settings.shadowSize or 5   
     local color = targetSettings.healthColor or {0.9, 0.7, 0.3, 1}
     
     -- Remove existing shadow if present
@@ -669,6 +669,61 @@ function Shadow:ApplyShadowToCUFTarget()
         frame = frame,
         shadowFrame = shadowFrame,
         frameType = "Target"
+    }, ShadowMT)
+    
+    -- Store in registry and on the frame
+    self.frameRegistry[frame] = shadow
+    frame.shadow = shadow
+    
+    return true
+end
+
+-- Direct method for CUF_Focus (based on target method)
+function Shadow:ApplyShadowToCUFFocus()
+    local frame = _G["CUF_Focus"]
+    if not frame then return false end
+    
+    -- Get user settings for the shadow
+    local settings = self.settings
+    if not settings or not settings.enabled then return false end
+    
+    -- Get focus-specific settings
+    local focusSettings = settings.unitFrames.Focus
+    if not focusSettings or not focusSettings.enabled then return false end
+    
+    -- Get shadow size and color
+    local size = settings.shadowSize or 5
+    local color = focusSettings.healthColor or {0.7, 0.3, 0.7, 1} -- Default purple for focus
+    
+    -- Remove existing shadow if present
+    if frame.shadow and self.frameRegistry[frame] then
+        self.frameRegistry[frame]:Remove()
+    end
+    
+    -- Create new shadow frame
+    local shadowFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    shadowFrame:SetFrameLevel(0) -- Safe level that always works
+    
+    -- Position the shadow
+    shadowFrame:SetPoint("TOPLEFT", -size, size)
+    shadowFrame:SetPoint("BOTTOMRIGHT", size, -size)
+    
+    -- Set backdrop
+    shadowFrame:SetBackdrop({
+        edgeFile = SHADOW_TEX,
+        edgeSize = size,
+        insets = { left = size, right = size, top = size, bottom = size },
+    })
+    
+    -- Apply user colors
+    shadowFrame:SetBackdropColor(0, 0, 0, 0)
+    shadowFrame:SetBackdropBorderColor(color[1], color[2], color[3], color[4] or 1)
+    
+    -- Create shadow object
+    local shadow = setmetatable({
+        frame = frame,
+        shadowFrame = shadowFrame,
+        frameType = "Focus"
     }, ShadowMT)
     
     -- Store in registry and on the frame
@@ -844,14 +899,6 @@ function Shadow:Initialize()
         end
     end)
     
-    -- Apply shadows with initial settings
-    ApplyShadows()
-    
-    -- Apply CUF_Target shadow directly for good measure
-    C_Timer.After(1.5, function()
-        Shadow:ApplyShadowToCUFTarget()
-    end)
-    
     -- Add specialized target frame event handling
     local targetFrame = CreateFrame("Frame")
     targetFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -868,6 +915,29 @@ function Shadow:Initialize()
                CellAdditionsDB.shadowSettings.enabled then
                 
                 ns.Debug("Target changed, applying shadows")
+                -- Just scan and update like normal
+                Shadow:ScanForFrames()
+                Shadow:UpdateAllShadows()
+            end
+        end)
+    end)
+    
+    -- Add specialized focus frame event handling
+    local focusFrame = CreateFrame("Frame")
+    focusFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+    focusFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    
+    focusFrame:SetScript("OnEvent", function(self, event)
+        -- Wait a moment for focus frame to be fully updated
+        C_Timer.After(0.2, function()
+            -- Always try the direct approach first for CUF_Focus
+            Shadow:ApplyShadowToCUFFocus()
+            
+            -- Then apply regular shadows if needed
+            if CellAdditionsDB.shadowSettings and 
+               CellAdditionsDB.shadowSettings.enabled then
+                
+                ns.Debug("Focus changed, applying shadows")
                 -- Just scan and update like normal
                 Shadow:ScanForFrames()
                 Shadow:UpdateAllShadows()
