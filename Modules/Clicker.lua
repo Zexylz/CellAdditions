@@ -92,6 +92,13 @@ end
 
 -- Layout all clickers
 function ClickerManager:LayoutClickers()
+	-- Check if module is enabled first
+	if not CellAdditionsDB or not CellAdditionsDB.clickerEnabled then
+		self:CleanupAllClickers() -- Remove any existing clickers
+		ns.Debug("Clicker module disabled, removing clickers")
+		return
+	end
+
 	local pad = 15
 
 	-- Make sure Cell is available
@@ -253,66 +260,74 @@ function Clicker:CreateSettings(parent, enableCheckbox)
 	-- Set a reasonable height for the content
 	content:SetHeight(400)
 
-	-- Create a title for the clicker settings section
+	-- Create a title for the clicker settings section with proper spacing
 	local settingsTitle = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
 	settingsTitle:SetText("Clicker Settings")
-	settingsTitle:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -10)
+	settingsTitle:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -15)
 
-	-- SECTION 1: GENERAL SETTINGS
+	-- SECTION 1: GENERAL SETTINGS with proper separator
+	local generalSeparator = Cell.CreateSeparator("General Settings", content)
+	generalSeparator:SetPoint("TOPLEFT", settingsTitle, "BOTTOMLEFT", 0, -15)
 
-	-- Create width slider with more vertical spacing
+	-- Create width slider with consistent spacing
 	local widthSlider = Cell.CreateSlider("Width", content, 20, 300, 180, 1)
-	widthSlider:SetPoint("TOPLEFT", settingsTitle, "BOTTOMLEFT", 5, -30)
+	widthSlider:SetPoint("TOPLEFT", generalSeparator, "BOTTOMLEFT", 10, -15)
 	widthSlider:SetValue(ClickerManager.settings.width or 100)
 	widthSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.width = math.floor(value)
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
 
-	-- Create height slider with more vertical spacing
+	-- Create height slider with consistent spacing
 	local heightSlider = Cell.CreateSlider("Height", content, 20, 300, 180, 1)
-	heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -40)
+	heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -15)
 	heightSlider:SetValue(ClickerManager.settings.height or 150)
 	heightSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.height = math.floor(value)
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
 
-	-- Create X offset slider with more vertical spacing
+	-- SECTION 2: POSITION SETTINGS with proper separator
+	local positionSeparator = Cell.CreateSeparator("Position", content)
+	positionSeparator:SetPoint("TOPLEFT", heightSlider, "BOTTOMLEFT", 0, -20)
+
+	-- Create X offset slider with consistent spacing
 	local xOffsetSlider = Cell.CreateSlider("X Offset", content, -50, 50, 180, 1)
-	xOffsetSlider:SetPoint("TOPLEFT", heightSlider, "BOTTOMLEFT", 0, -40)
+	xOffsetSlider:SetPoint("TOPLEFT", positionSeparator, "BOTTOMLEFT", 10, -15)
 	xOffsetSlider:SetValue(ClickerManager.settings.offsetX or 0)
 	xOffsetSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.offsetX = math.floor(value)
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
 
-	-- Create Y offset slider with more vertical spacing
+	-- Create Y offset slider with consistent spacing
 	local yOffsetSlider = Cell.CreateSlider("Y Offset", content, -50, 50, 180, 1)
-	yOffsetSlider:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -40)
+	yOffsetSlider:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -15)
 	yOffsetSlider:SetValue(ClickerManager.settings.offsetY or 0)
 	yOffsetSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.offsetY = math.floor(value)
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
 
-	-- Toggle custom size checkbox
+	-- SECTION 3: ADDITIONAL OPTIONS with proper separator
+	local optionsSeparator = Cell.CreateSeparator("Additional Options", content)
+	optionsSeparator:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -20)
+
+	-- Toggle custom size checkbox with consistent spacing
 	local customSizeCheckbox = Cell.CreateCheckButton(content, "Use Custom Size", function(checked)
 		ClickerManager.settings.useCustomSize = checked
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end)
-	customSizeCheckbox:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -20)
+	customSizeCheckbox:SetPoint("TOPLEFT", optionsSeparator, "BOTTOMLEFT", 10, -10)
 	customSizeCheckbox:SetChecked(ClickerManager.settings.useCustomSize)
 
-	-- Debug checkbox
+	-- Debug checkbox with consistent spacing
 	local debugCheckbox = Cell.CreateCheckButton(content, "Show Debug Overlay", function(checked)
 		ClickerManager.settings.debug = checked
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end)
-	debugCheckbox:SetPoint("TOPLEFT", customSizeCheckbox, "BOTTOMLEFT", 0, -15)
+	debugCheckbox:SetPoint("TOPLEFT", customSizeCheckbox, "BOTTOMLEFT", 0, -10)
 	debugCheckbox:SetChecked(ClickerManager.settings.debug)
-
-	-- Note: Apply Now button has been removed
 end
 
 -- Initialize function called when the module loads

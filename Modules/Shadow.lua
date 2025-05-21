@@ -1,5 +1,10 @@
 local addonName, ns = ...
 
+-- Function to check if shadows are enabled
+local function AreShadowsEnabled()
+    return CellAdditionsDB and CellAdditionsDB.shadowSettings and CellAdditionsDB.shadowSettings.enabled
+end
+
 -- Create module with metatable for better performance
 local Shadow = setmetatable({
     id = "Shadow",
@@ -265,6 +270,16 @@ end
 
 -- Scan for all relevant frames
 function Shadow:ScanForFrames()
+    -- Check if shadows are enabled first
+    if not AreShadowsEnabled() then
+        -- Remove all shadows if disabled
+        for frame, shadow in pairs(self.frameRegistry) do
+            shadow:Remove()
+        end
+        ns.Debug("Shadows disabled, not scanning for frames")
+        return
+    end
+
     -- Always try to apply shadow to CUF_Target
     self:ApplyShadowToCUFTarget()
     
@@ -344,6 +359,16 @@ end
 
 -- Update all shadows based on current settings
 function Shadow:UpdateAllShadows()
+    -- Check if shadows are enabled first
+    if not AreShadowsEnabled() then
+        -- Remove all shadows if disabled
+        for frame, shadow in pairs(self.frameRegistry) do
+            shadow:Remove()
+        end
+        ns.Debug("Shadows disabled, removing all shadows")
+        return
+    end
+
     -- Update settings from Cell shadow frames
     local settings = self.settings
     
@@ -769,7 +794,7 @@ function Shadow:Initialize()
     if Cell and Cell.RegisterCallback then
         Cell:RegisterCallback("Cell_Init", function()
             C_Timer.After(0.5, function()
-                if CellAdditionsDB.shadowSettings.enabled then
+                if AreShadowsEnabled() then
                     Shadow:ScanForFrames()
                     Shadow:UpdateAllShadows()
                     -- Force target shadows specifically
@@ -783,7 +808,7 @@ function Shadow:Initialize()
         
         Cell:RegisterCallback("Cell_UnitButtonCreated", function()
             C_Timer.After(0.1, function()
-                if CellAdditionsDB.shadowSettings.enabled then
+                if AreShadowsEnabled() then
                     Shadow:ScanForFrames()
                     Shadow:UpdateAllShadows()
                 end
@@ -802,7 +827,7 @@ function Shadow:Initialize()
         
         for _, event in ipairs(updateEvents) do
             Cell:RegisterCallback(event, function()
-                if CellAdditionsDB.shadowSettings.enabled then
+                if AreShadowsEnabled() then
                     C_Timer.After(0.1, function()
                         Shadow:ScanForFrames()
                         Shadow:UpdateAllShadows()
@@ -972,62 +997,45 @@ function Shadow:CreateSettings(parent)
     -- Initialize settings if needed
     local settings = InitSettings()
     
-    -- Create main container with dark background
+    -- Create main container with proper padding
     local container = CreateFrame("Frame", nil, parent)
-    container:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
-    container:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+    container:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
+    container:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
     container:SetFrameLevel(parent:GetFrameLevel() + 1)
     
     -- Get accent color
     local accentColor = Cell.GetAccentColorTable()
     
-    -- Enable Shadow checkbox (placed directly at the top, no separator)
+    -- Enable Shadow checkbox (placed at the very top)
     local enableShadowCB = Cell.CreateCheckButton(container, "Enable Shadow", function(checked)
         settings.enabled = checked
         ns.Debug("Shadow enabled: " .. tostring(checked))
         ApplyShadows()
     end)
-    enableShadowCB:SetPoint("TOPLEFT", container, "TOPLEFT", 5, -10)
+    enableShadowCB:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
     enableShadowCB:SetChecked(settings.enabled)
     
-    -- Shadow Settings text
-    local shadowSettingsText = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    shadowSettingsText:SetPoint("TOPLEFT", enableShadowCB, "BOTTOMLEFT", 0, -12)
+    -- Shadow Settings header with proper spacing
+    local shadowSettingsText = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
+    shadowSettingsText:SetPoint("TOPLEFT", enableShadowCB, "BOTTOMLEFT", 0, -15)
     shadowSettingsText:SetText("Shadow Settings")
     
-    -- Shadow size text
+    -- Shadow size text with consistent spacing
     local shadowSizeText = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    shadowSizeText:SetPoint("TOPLEFT", shadowSettingsText, "BOTTOMLEFT", 10, -8)
+    shadowSizeText:SetPoint("TOPLEFT", shadowSettingsText, "BOTTOMLEFT", 10, -10)
     shadowSizeText:SetText("Shadow Size")
     
-    -- Shadow size slider
+    -- Shadow size slider with proper spacing
     local shadowSizeSlider = Cell.CreateSlider("", container, 1, 15, 120, 1)
-    shadowSizeSlider:SetPoint("TOPLEFT", shadowSizeText, "BOTTOMLEFT", 0, -8)
+    shadowSizeSlider:SetPoint("TOPLEFT", shadowSizeText, "BOTTOMLEFT", 0, -5)
     shadowSizeSlider:SetLabel("")
     shadowSizeSlider:SetValue(settings.shadowSize)
     
-    -- Current value display box
-    local valueBox = CreateFrame("Frame", nil, container, "BackdropTemplate")
-    Cell.StylizeFrame(valueBox, {0.15, 0.15, 0.15, 1}, {0, 0, 0, 0})
-    valueBox:SetSize(40, 25)
-    valueBox:SetPoint("LEFT", shadowSizeSlider, "RIGHT", 10, 0)
-    
-    local valueText = valueBox:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    valueText:SetPoint("CENTER", valueBox, "CENTER")
-    valueText:SetText(settings.shadowSize)
-    
-    shadowSizeSlider.afterValueChangedFn = function(value)
-        settings.shadowSize = value
-        valueText:SetText(value)
-        ns.Debug("Shadow size set to: " .. value)
-        ApplyShadows()
-    end
-    
-    -- Cell section with separator
+    -- Cell section with consistent separator spacing
     local cellSeparator = Cell.CreateSeparator("Cell", container)
-    cellSeparator:SetPoint("TOPLEFT", shadowSizeSlider, "BOTTOMLEFT", -10, -25)
+    cellSeparator:SetPoint("TOPLEFT", shadowSizeSlider, "BOTTOMLEFT", -10, -20)
     
-    -- Solo Frame checkbox (added as requested)
+    -- Solo Frame checkbox with proper spacing
     local soloFrameCB = Cell.CreateCheckButton(container, "Solo Frame", function(checked)
         if not settings.unitFrames then settings.unitFrames = {} end
         if not settings.unitFrames.Solo then settings.unitFrames.Solo = {} end
@@ -1038,7 +1046,7 @@ function Shadow:CreateSettings(parent)
     soloFrameCB:SetPoint("TOPLEFT", cellSeparator, "BOTTOMLEFT", 10, -10)
     soloFrameCB:SetChecked(settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.enabled)
     
-    -- Solo Frame color swatch
+    -- Solo Frame color swatch aligned with checkbox
     local soloColorSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
         if not settings.unitFrames then settings.unitFrames = {} end
         if not settings.unitFrames.Solo then 
@@ -1054,18 +1062,6 @@ function Shadow:CreateSettings(parent)
     end)
     soloColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
     soloColorSwatch:SetPoint("TOP", soloFrameCB, "TOP", 0, 0)
-    
-    -- Set initial color
-    if settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.healthColor then
-        soloColorSwatch:SetColor(
-            settings.unitFrames.Solo.healthColor[1],
-            settings.unitFrames.Solo.healthColor[2],
-            settings.unitFrames.Solo.healthColor[3],
-            settings.unitFrames.Solo.healthColor[4]
-        )
-    else
-        soloColorSwatch:SetColor(0.7, 0.9, 0.3, 1) -- Default green color
-    end
     
     -- Party Frames checkbox
     local partyFramesCB = Cell.CreateCheckButton(container, "Party Frames", function(checked)
@@ -1109,17 +1105,17 @@ function Shadow:CreateSettings(parent)
     
     -- Cell - Unit Frames section with separator
     local unitFramesSeparator = Cell.CreateSeparator("Cell - Unit Frames", container)
-    unitFramesSeparator:SetPoint("TOPLEFT", raidFramesCB, "BOTTOMLEFT", -10, -25)
+    unitFramesSeparator:SetPoint("TOPLEFT", raidFramesCB, "BOTTOMLEFT", -10, -15)
     
-    -- Create column headers for HB and PB
+    -- Create column headers for HB and PB with more spacing
     local hbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     hbLabel:SetPoint("TOPRIGHT", container, "TOPRIGHT", -45, 0)
-    hbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -12)
+    hbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -8)
     hbLabel:SetText("HB")
     
     local pbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     pbLabel:SetPoint("TOPRIGHT", container, "TOPRIGHT", -15, 0)
-    pbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -12)
+    pbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -8)
     pbLabel:SetText("PB")
     
     -- Unit frames definitions

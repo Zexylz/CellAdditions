@@ -1,5 +1,8 @@
 local addonName, ns = ...
 
+-- Debug toggle - set to false to disable all debug output
+local DEBUG_ENABLED = false
+
 -- Create addon table
 local CellAdditions = {}
 ns.addon = CellAdditions
@@ -12,6 +15,8 @@ CellAdditions.P = CellAdditions.Cell and CellAdditions.Cell.pixelPerfectFuncs or
 
 -- Debug output function
 local function Debug(msg)
+	if not DEBUG_ENABLED then return end
+	
 	if CellAdditionsDB and CellAdditionsDB.debug then
 		-- Use DEFAULT_CHAT_FRAME:AddMessage to ensure visibility
 		if DEFAULT_CHAT_FRAME then
@@ -1258,8 +1263,7 @@ local function Initialize()
 
 	-- Initialize all registered modules (this calls module:Initialize() if it exists)
 	-- ns.InitializeModules() -- The new Shadow.lua doesn't have Initialize().
-	-- Let's check if ns.InitializeModules() is still needed for other modules.
-	-- For now, we assume other modules might still use it. If ns.addon.Shadow is populated
+	-- Let's check if ns.InitializeModules() is still needed for other modules. If ns.addon.Shadow is populated
 	-- by WoW loading the file, we don't need to call an Initialize on it for AceConfig.
 	if ns.InitializeModules then
 		ns.InitializeModules()
