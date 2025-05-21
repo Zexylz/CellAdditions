@@ -10,6 +10,22 @@ CellAdditions.L = CellAdditions.Cell and CellAdditions.Cell.L or {}
 CellAdditions.F = CellAdditions.Cell and CellAdditions.Cell.funcs or {}
 CellAdditions.P = CellAdditions.Cell and CellAdditions.Cell.pixelPerfectFuncs or {}
 
+-- Debug output function
+local function Debug(msg)
+	if CellAdditionsDB and CellAdditionsDB.debug then
+		-- Use DEFAULT_CHAT_FRAME:AddMessage to ensure visibility
+		if DEFAULT_CHAT_FRAME then
+			DEFAULT_CHAT_FRAME:AddMessage("[CellAdditions DEBUG] " .. tostring(msg), 1, 0.5, 0)
+		else
+			-- Fallback to print if DEFAULT_CHAT_FRAME is not available
+			print("[CellAdditions DEBUG] " .. tostring(msg))
+		end
+	end
+end
+
+-- Make Debug function available to modules
+ns.Debug = Debug
+
 -- Initialize function
 function CellAdditions:Initialize()
 	if not self.Cell then
@@ -22,10 +38,6 @@ function CellAdditions:Initialize()
 		ns.UIFrames:Initialize()
 	end
 	
-	-- Initialize modules
-	-- if self.shadow then -- Removed old self.shadow:Initialize() as new Shadow.lua doesn't use it.
-	--	self.shadow:Initialize()
-	-- end
 end
 
 -- Event frame
@@ -38,13 +50,10 @@ f:SetScript("OnEvent", function(self, event, addon)
 end)
 
 -- Get references to Cell
-local Cell = _G.Cell
+local Cell = ns.Cell
 local L = Cell and Cell.L or {}
 local F = Cell and Cell.funcs or {}
 local P = Cell and Cell.pixelPerfectFuncs or {}
-
--- Make Cell accessible to modules
-ns.Cell = Cell
 
 -- Modules table to store all registered modules
 ns.modules = {}
@@ -215,22 +224,6 @@ local function InitDB()
 	end
 end
 
--- Debug output function
-local function Debug(msg)
-	if CellAdditionsDB and CellAdditionsDB.debug then
-		-- Use DEFAULT_CHAT_FRAME:AddMessage to ensure visibility
-		if DEFAULT_CHAT_FRAME then
-			DEFAULT_CHAT_FRAME:AddMessage("[CellAdditions DEBUG] " .. tostring(msg), 1, 0.5, 0)
-		else
-			-- Fallback to print if DEFAULT_CHAT_FRAME is not available
-			print("[CellAdditions DEBUG] " .. tostring(msg))
-		end
-	end
-end
-
--- Make Debug function available to modules
-ns.Debug = Debug
-
 -- Function to register a module
 function ns.RegisterModule(module)
 	if not module or not module.id or not module.name then
@@ -271,27 +264,10 @@ function ns.ValidateAPIs()
 	
 	-- Check for Shadow API
 	if not ns.API.Shadow then
-		Debug("ERROR: Shadow API not loaded. Attempting to manually load it.")
-		-- Try to reload Shadow API if it's not available
-		local path = "Interface\\AddOns\\CellAdditions\\API\\Shadow.lua"
-		local loadSuccess = pcall(function() 
-			local shadowApi = dofile(path)
-			if shadowApi then
-				Debug("Successfully loaded Shadow API from file")
-			else
-				Debug("Failed to load Shadow API from file")
-			end
-		end)
-		
-		if not loadSuccess then
-			Debug("ERROR: Could not manually load Shadow API. Shadow features may not work.")
-		end
+		Debug("ERROR: Shadow API not loaded. This module should be loaded via the TOC file.")
 	else
 		Debug("Shadow API is loaded and available")
 	end
-	
-	-- Check for other APIs as needed
-	-- ...
 	
 	Debug("API validation complete")
 end
@@ -440,75 +416,75 @@ local function CreateAdditionsPanel()
 	end
 
 	-- Function to show settings for a feature
-function ShowFeatureSettings(index)
-	-- Clear existing content
-	settingsFrame.scrollFrame.content:SetHeight(1)
-	for _, child in pairs({ settingsFrame.scrollFrame.content:GetChildren() }) do
-		child:Hide()
-	end
-	for _, region in pairs({ settingsFrame.scrollFrame.content:GetRegions() }) do
-		region:Hide()
-	end
-
-	-- Update selected feature
-	selected = index
-	local feature = features[index]
-
-	-- Get accent color
-	local accentColor = GetAccentColor()
-
-	-- Add a horizontal line at the top
-	local line = settingsFrame.scrollFrame.content:CreateTexture(nil, "ARTWORK")
-	line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
-	line:SetSize(250, 1)
-	line:SetPoint("TOPLEFT", settingsFrame.scrollFrame.content, "TOPLEFT", 5, -5)
-
-	-- Create feature-specific settings
-	local module = ns.modules[feature.id]
-	if module then
-		Debug("Showing settings for module: " .. module.name)
-		
-		-- Special handling for Shadow module - don't create extra checkboxes
-		if module.id == "Shadow" then
-			Debug("Calling CreateSettings for Shadow module")
-			if module.CreateSettings and type(module.CreateSettings) == "function" then
-				module:CreateSettings(settingsFrame.scrollFrame.content)
-			end
-			return -- Early return for Shadow module
+	function ShowFeatureSettings(index)
+		-- Clear existing content
+		settingsFrame.scrollFrame.content:SetHeight(1)
+		for _, child in pairs({ settingsFrame.scrollFrame.content:GetChildren() }) do
+			child:Hide()
 		end
-		
-		-- For other modules, create an enable checkbox with native WoW UI
-		if module.id ~= "Shadow" then
-			local enableCb = CreateFrame("CheckButton", nil, settingsFrame.scrollFrame.content, "UICheckButtonTemplate")
-			enableCb:SetSize(24, 24)
-			enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
+		for _, region in pairs({ settingsFrame.scrollFrame.content:GetRegions() }) do
+			region:Hide()
+		end
+
+		-- Update selected feature
+		selected = index
+		local feature = features[index]
+
+		-- Get accent color
+		local accentColor = GetAccentColor()
+
+		-- Add a horizontal line at the top
+		local line = settingsFrame.scrollFrame.content:CreateTexture(nil, "ARTWORK")
+		line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+		line:SetSize(250, 1)
+		line:SetPoint("TOPLEFT", settingsFrame.scrollFrame.content, "TOPLEFT", 5, -5)
+
+		-- Create feature-specific settings
+		local module = ns.modules[feature.id]
+		if module then
+			Debug("Showing settings for module: " .. module.name)
 			
-			enableCb.text = enableCb:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-			enableCb.text:SetText("Enable " .. module.name)
-			enableCb.text:SetPoint("LEFT", enableCb, "RIGHT", 2, 0)
-			
-			-- Make sure we use the right property name for the enabled state with proper nil check
-			local enabledProperty = module.id .. "Enabled"
-			enableCb:SetChecked(CellAdditionsDB[enabledProperty] == nil or CellAdditionsDB[enabledProperty])
-			
-			enableCb:SetScript("OnClick", function(self)
-				-- Call the module's SetEnabled function if it exists
-				if module.SetEnabled and type(module.SetEnabled) == "function" then
-					module:SetEnabled(self:GetChecked())
-				else
-					-- Fallback if module doesn't have SetEnabled function
-					CellAdditionsDB[module.id .. "Enabled"] = self:GetChecked()
-					Debug(module.name .. " " .. (self:GetChecked() and "enabled" or "disabled"))
+			-- Special handling for Shadow module - don't create extra checkboxes
+			if module.id == "Shadow" then
+				Debug("Calling CreateSettings for Shadow module")
+				if module.CreateSettings and type(module.CreateSettings) == "function" then
+					module:CreateSettings(settingsFrame.scrollFrame.content)
 				end
-			end)
+				return -- Early return for Shadow module
+			end
+			
+			-- For other modules, create an enable checkbox with native WoW UI
+			if module.id ~= "Shadow" then
+				local enableCb = CreateFrame("CheckButton", nil, settingsFrame.scrollFrame.content, "UICheckButtonTemplate")
+				enableCb:SetSize(24, 24)
+				enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
+				
+				enableCb.text = enableCb:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+				enableCb.text:SetText("Enable " .. module.name)
+				enableCb.text:SetPoint("LEFT", enableCb, "RIGHT", 2, 0)
+				
+				-- Make sure we use the right property name for the enabled state with proper nil check
+				local enabledProperty = module.id .. "Enabled"
+				enableCb:SetChecked(CellAdditionsDB[enabledProperty] == nil or CellAdditionsDB[enabledProperty])
+				
+				enableCb:SetScript("OnClick", function(self)
+					-- Call the module's SetEnabled function if it exists
+					if module.SetEnabled and type(module.SetEnabled) == "function" then
+						module:SetEnabled(self:GetChecked())
+					else
+						-- Fallback if module doesn't have SetEnabled function
+						CellAdditionsDB[module.id .. "Enabled"] = self:GetChecked()
+						Debug(module.name .. " " .. (self:GetChecked() and "enabled" or "disabled"))
+					end
+				end)
 
-			-- If the module has a CreateSettings function, call it to add more settings
-			if module.CreateSettings and type(module.CreateSettings) == "function" then
-				module:CreateSettings(settingsFrame.scrollFrame.content, enableCb)
+				-- If the module has a CreateSettings function, call it to add more settings
+				if module.CreateSettings and type(module.CreateSettings) == "function" then
+					module:CreateSettings(settingsFrame.scrollFrame.content, enableCb)
+				end
 			end
 		end
 	end
-end
 
 	-- Function to highlight a list item
 	function ListHighlightFn(index)
@@ -848,7 +824,7 @@ local function AddReplacementUtilitiesButton()
 		newUtilitiesBtn:SetScript("OnDragStop", function()
 			optionsFrame:StopMovingOrSizing()
 			P.PixelPerfectPoint(optionsFrame)
-			P.SavePosition(optionsFrame, CellDB["optionsFramePosition"])
+			P.SavePosition(optionsFrame, Cell.vars.db["optionsFramePosition"])
 		end)
 
 		-- Create the custom utilities menu

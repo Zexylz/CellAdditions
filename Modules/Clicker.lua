@@ -101,14 +101,13 @@ function ClickerManager:LayoutClickers()
 	end
 
 	-- Check if CUF is available (Cell Unit Frames)
-	local CUF = _G.CUF
-	if not CUF or not CUF.Util then
+	if not _G.CUF or not _G.CUF.Util then
 		ns.Debug("CUF not available for clicker layout")
 		return
 	end
 
 	-- Get all unit buttons directly from CUF
-	local unitButtons = CUF.unitButtons
+	local unitButtons = _G.CUF.unitButtons
 	if not unitButtons then
 		ns.Debug("No unit buttons found in CUF")
 		return
@@ -433,3 +432,10 @@ end
 
 -- Register the module with the addon
 ns.RegisterModule(Clicker)
+
+-- Register for layout changes
+if _G.CUF then
+	_G.CUF:RegisterCallback("UpdateLayout", "CellAdditions_Clicker_UpdateLayout", function()
+		ClickerManager:LayoutClickers()
+	end)
+end

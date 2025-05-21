@@ -12,7 +12,7 @@ local currentLayout = nil
 -- Function to refresh and get the current layout information
 function FrameState:GetCurrentLayout()
     -- Get current layout information
-    if Cell and CellDB then
+    if Cell and Cell.vars.db then
         -- Check current active layout
         if Cell.vars and Cell.vars.currentLayout then
             currentLayout = Cell.vars.currentLayout
@@ -43,8 +43,8 @@ function FrameState:IsFrameTypeEnabled(frameType)
     
     -- Get the layout table safely
     local layout = nil
-    if _G.CUF and _G.CUF.DB and CUF.DB.CurrentLayoutTable then
-        layout = CUF.DB.CurrentLayoutTable()
+    if _G.CUF and _G.CUF.DB and _G.CUF.DB.CurrentLayoutTable then
+        layout = _G.CUF.DB.CurrentLayoutTable()
     end
     
     -- If we have a layout table and a unit key, check the enabled state
@@ -66,8 +66,8 @@ function FrameState:GetAvailableFrameTypes()
     
     -- Get the layout table safely
     local layout = nil
-    if _G.CUF and _G.CUF.DB and CUF.DB.CurrentLayoutTable then
-        layout = CUF.DB.CurrentLayoutTable()
+    if _G.CUF and _G.CUF.DB and _G.CUF.DB.CurrentLayoutTable then
+        layout = _G.CUF.DB.CurrentLayoutTable()
         
         -- If we have a layout, get all unit keys
         if layout then
@@ -115,13 +115,13 @@ function FrameState:RegisterCallbacks(callbackFunc)
     -- Also register with CUF callbacks if available
     if _G.CUF then
         -- Listen for layout changes
-        CUF:RegisterCallback("UpdateLayout", "CellAdditions_FrameState_UpdateLayout", callbackFunc)
+        _G.CUF:RegisterCallback("UpdateLayout", "CellAdditions_FrameState_UpdateLayout", callbackFunc)
         
         -- Listen for widget updates (which includes enabling/disabling frames)
-        CUF:RegisterCallback("UpdateWidget", "CellAdditions_FrameState_UpdateWidget", callbackFunc)
+        _G.CUF:RegisterCallback("UpdateWidget", "CellAdditions_FrameState_UpdateWidget", callbackFunc)
         
         -- Listen for DB changes
-        CUF:RegisterCallback("LoadPageDB", "CellAdditions_FrameState_LoadPageDB", callbackFunc)
+        _G.CUF:RegisterCallback("LoadPageDB", "CellAdditions_FrameState_LoadPageDB", callbackFunc)
     end
     
     return true
