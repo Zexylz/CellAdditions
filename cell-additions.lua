@@ -38,22 +38,29 @@ function CellAdditions:Initialize()
 		ns.UIFrames:Initialize()
 	end
 	
+	-- Initialize modules
+	-- if self.shadow then -- Removed old self.shadow:Initialize() as new Shadow.lua doesn't use it.
+	--	self.shadow:Initialize()
+	-- end
 end
 
 -- Event frame
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
-f:SetScript("OnEvent", function(_, event, addon)
+f:SetScript("OnEvent", function(self, event, addon)
 	if addon == addonName then
 		CellAdditions:Initialize()
 	end
 end)
 
 -- Get references to Cell
-local Cell = ns.Cell
+local Cell = _G.Cell
 local L = Cell and Cell.L or {}
 local F = Cell and Cell.funcs or {}
 local P = Cell and Cell.pixelPerfectFuncs or {}
+
+-- Make Cell accessible to modules
+ns.Cell = Cell
 
 -- Modules table to store all registered modules
 ns.modules = {}
@@ -309,21 +316,19 @@ local function GetAccentColor()
 end
 
 -- Variables for list interface
-local panel = nil
-local listFrame = nil
-local settingsFrame = nil
-local selected = 1
 local listButtons = {}
+local selected = 1
+local listFrame
+local settingsFrame
 
 -- Features will be populated from modules
 local features = {}
 
+local panel, listFrame, settingsFrame, selected, listButtons = nil, nil, nil, 1, {}
+
 -- Make these variables available in the namespace so modules can access them
-ns.panel = panel
-ns.listFrame = listFrame
-ns.settingsFrame = settingsFrame
-ns.selected = selected
 ns.listButtons = listButtons
+ns.selected = selected
 ns.features = features
 
 -- Create our own content tab
@@ -813,8 +818,8 @@ local function AddReplacementUtilitiesButton()
 
 		-- Copy any additional points
 		for i = 2, origUtilitiesBtn:GetNumPoints() do
-			local p, r, rp, x, y = origUtilitiesBtn:GetPoint(i)
-			newUtilitiesBtn:SetPoint(p, r, rp, x, y)
+			local point, relativeTo, relativePoint, xOfs, yOfs = origUtilitiesBtn:GetPoint(i)
+			newUtilitiesBtn:SetPoint(point, relativeTo, relativePoint, xOfs, yOfs)
 		end
 
 		-- Make it draggable like the original
