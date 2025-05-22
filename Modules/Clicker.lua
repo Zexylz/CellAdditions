@@ -1,5 +1,4 @@
 local addonName, ns = ...
-local Cell = ns.Cell
 
 -- Create a Clicker module namespace
 local Clicker = {}
@@ -13,8 +12,6 @@ Clicker.description = "Enhanced click functionality for unit frames"
 -- Local variables
 local C_Timer = _G.C_Timer
 local frameLevel = 4
-local lastUpdate = 0
-local UPDATE_THROTTLE = 0.05 -- Only update every 0.05 seconds while sliding
 
 -- ClickerManager for internal use
 local ClickerManager = {
@@ -102,6 +99,7 @@ function ClickerManager:LayoutClickers()
 	local pad = 15
 
 	-- Make sure Cell is available
+	local Cell = ns.Cell or _G.Cell
 	if not Cell then 
 		ns.Debug("Cell not available for clicker layout")
 		return 
@@ -256,77 +254,152 @@ function Clicker:CreateSettings(parent, enableCheckbox)
 	ClickerManager:InitializeSettings()
 
 	local content = parent
+	
+	-- Get Cell reference
+	local Cell = ns.Cell or _G.Cell
+	if not Cell then
+		ns.Debug("ERROR: Cell not available for Clicker settings")
+		return
+	end
 
 	-- Set a reasonable height for the content
 	content:SetHeight(400)
 
-	-- Create a title for the clicker settings section with proper spacing
-	local settingsTitle = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-	settingsTitle:SetText("Clicker Settings")
-	settingsTitle:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -15)
-
-	-- SECTION 1: GENERAL SETTINGS with proper separator
-	local generalSeparator = Cell.CreateSeparator("General Settings", content)
-	generalSeparator:SetPoint("TOPLEFT", settingsTitle, "BOTTOMLEFT", 0, -15)
-
-	-- Create width slider with consistent spacing
-	local widthSlider = Cell.CreateSlider("Width", content, 20, 300, 180, 1)
-	widthSlider:SetPoint("TOPLEFT", generalSeparator, "BOTTOMLEFT", 10, -15)
+	-- Clicker Settings header with proper spacing below enable checkbox
+	local settingsHeader = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
+	settingsHeader:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -25)
+	settingsHeader:SetText("Clicker Settings")
+	
+	-- SECTION 1: GENERAL SETTINGS
+	local generalText = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	generalText:SetPoint("TOPLEFT", settingsHeader, "BOTTOMLEFT", 0, -20)
+	generalText:SetText("General Settings")
+	
+	-- Create a container frame for sliders
+	local sliderContainer = CreateFrame("Frame", nil, content)
+	sliderContainer:SetPoint("TOPLEFT", generalText, "BOTTOMLEFT", 5, -10)
+	sliderContainer:SetPoint("TOPRIGHT", content, "TOPRIGHT", -10, 0)
+	sliderContainer:SetHeight(200)
+	
+	-- Create width display
+	local widthText = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	widthText:SetPoint("TOPLEFT", sliderContainer, "TOPLEFT", 0, 0)
+	widthText:SetText("Width")
+	
+	local widthValue = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	widthValue:SetPoint("LEFT", widthText, "RIGHT", 50, 0)
+	widthValue:SetJustifyH("CENTER")
+	widthValue:SetWidth(40)
+	widthValue:SetText(tostring(ClickerManager.settings.width or 100))
+	
+	-- Width slider
+	local widthSlider = Cell.CreateSlider("", sliderContainer, 20, 300, 180, 1)
+	widthSlider:SetPoint("TOPLEFT", widthText, "BOTTOMLEFT", 0, -5)
+	widthSlider:SetLabel("")
 	widthSlider:SetValue(ClickerManager.settings.width or 100)
 	widthSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.width = math.floor(value)
+		widthValue:SetText(tostring(ClickerManager.settings.width))
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
-
-	-- Create height slider with consistent spacing
-	local heightSlider = Cell.CreateSlider("Height", content, 20, 300, 180, 1)
-	heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -15)
+	
+	-- Create height display
+	local heightText = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	heightText:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -25)
+	heightText:SetText("Height")
+	
+	local heightValue = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	heightValue:SetPoint("LEFT", heightText, "RIGHT", 45, 0)
+	heightValue:SetJustifyH("CENTER")
+	heightValue:SetWidth(40)
+	heightValue:SetText(tostring(ClickerManager.settings.height or 150))
+	
+	-- Height slider
+	local heightSlider = Cell.CreateSlider("", sliderContainer, 20, 300, 180, 1)
+	heightSlider:SetPoint("TOPLEFT", heightText, "BOTTOMLEFT", 0, -5)
+	heightSlider:SetLabel("")
 	heightSlider:SetValue(ClickerManager.settings.height or 150)
 	heightSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.height = math.floor(value)
+		heightValue:SetText(tostring(ClickerManager.settings.height))
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
-
-	-- SECTION 2: POSITION SETTINGS with proper separator
-	local positionSeparator = Cell.CreateSeparator("Position", content)
-	positionSeparator:SetPoint("TOPLEFT", heightSlider, "BOTTOMLEFT", 0, -20)
-
-	-- Create X offset slider with consistent spacing
-	local xOffsetSlider = Cell.CreateSlider("X Offset", content, -50, 50, 180, 1)
-	xOffsetSlider:SetPoint("TOPLEFT", positionSeparator, "BOTTOMLEFT", 10, -15)
+	
+	-- SECTION 2: POSITION
+	local positionText = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	positionText:SetPoint("TOPLEFT", heightSlider, "BOTTOMLEFT", -5, -35)
+	positionText:SetText("Position")
+	
+	-- X Offset display
+	local xOffsetText = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	xOffsetText:SetPoint("TOPLEFT", positionText, "BOTTOMLEFT", 5, -10)
+	xOffsetText:SetText("X Offset")
+	
+	local xOffsetValue = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	xOffsetValue:SetPoint("LEFT", xOffsetText, "RIGHT", 30, 0)
+	xOffsetValue:SetJustifyH("CENTER")
+	xOffsetValue:SetWidth(40)
+	xOffsetValue:SetText(tostring(ClickerManager.settings.offsetX or 0))
+	
+	-- X offset slider
+	local xOffsetSlider = Cell.CreateSlider("", sliderContainer, -50, 50, 180, 1)
+	xOffsetSlider:SetPoint("TOPLEFT", xOffsetText, "BOTTOMLEFT", 0, -5)
+	xOffsetSlider:SetLabel("")
 	xOffsetSlider:SetValue(ClickerManager.settings.offsetX or 0)
 	xOffsetSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.offsetX = math.floor(value)
+		xOffsetValue:SetText(tostring(ClickerManager.settings.offsetX))
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
-
-	-- Create Y offset slider with consistent spacing
-	local yOffsetSlider = Cell.CreateSlider("Y Offset", content, -50, 50, 180, 1)
-	yOffsetSlider:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -15)
+	
+	-- Y Offset display
+	local yOffsetText = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	yOffsetText:SetPoint("TOPLEFT", xOffsetSlider, "BOTTOMLEFT", 0, -25)
+	yOffsetText:SetText("Y Offset")
+	
+	local yOffsetValue = sliderContainer:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	yOffsetValue:SetPoint("LEFT", yOffsetText, "RIGHT", 30, 0)
+	yOffsetValue:SetJustifyH("CENTER")
+	yOffsetValue:SetWidth(40)
+	yOffsetValue:SetText(tostring(ClickerManager.settings.offsetY or 0))
+	
+	-- Y offset slider
+	local yOffsetSlider = Cell.CreateSlider("", sliderContainer, -50, 50, 180, 1)
+	yOffsetSlider:SetPoint("TOPLEFT", yOffsetText, "BOTTOMLEFT", 0, -5)
+	yOffsetSlider:SetLabel("")
 	yOffsetSlider:SetValue(ClickerManager.settings.offsetY or 0)
 	yOffsetSlider.afterValueChangedFn = function(value)
 		ClickerManager.settings.offsetY = math.floor(value)
+		yOffsetValue:SetText(tostring(ClickerManager.settings.offsetY))
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end
-
-	-- SECTION 3: ADDITIONAL OPTIONS with proper separator
-	local optionsSeparator = Cell.CreateSeparator("Additional Options", content)
-	optionsSeparator:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", 0, -20)
-
-	-- Toggle custom size checkbox with consistent spacing
+	
+	-- SECTION 3: ADDITIONAL OPTIONS
+	local optionsText = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	optionsText:SetPoint("TOPLEFT", yOffsetSlider, "BOTTOMLEFT", -5, -35)
+	optionsText:SetText("Additional Options")
+	
+	-- Toggle custom size checkbox
 	local customSizeCheckbox = Cell.CreateCheckButton(content, "Use Custom Size", function(checked)
 		ClickerManager.settings.useCustomSize = checked
+		-- Enable/disable width and height sliders based on custom size
+		widthSlider:SetEnabled(checked)
+		heightSlider:SetEnabled(checked)
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end)
-	customSizeCheckbox:SetPoint("TOPLEFT", optionsSeparator, "BOTTOMLEFT", 10, -10)
+	customSizeCheckbox:SetPoint("TOPLEFT", optionsText, "BOTTOMLEFT", 5, -15)
 	customSizeCheckbox:SetChecked(ClickerManager.settings.useCustomSize)
-
-	-- Debug checkbox with consistent spacing
+	
+	-- Enable/disable sliders based on initial state
+	widthSlider:SetEnabled(ClickerManager.settings.useCustomSize)
+	heightSlider:SetEnabled(ClickerManager.settings.useCustomSize)
+	
+	-- Debug checkbox
 	local debugCheckbox = Cell.CreateCheckButton(content, "Show Debug Overlay", function(checked)
 		ClickerManager.settings.debug = checked
 		C_Timer.After(0.1, function() ClickerManager:LayoutClickers() end)
 	end)
-	debugCheckbox:SetPoint("TOPLEFT", customSizeCheckbox, "BOTTOMLEFT", 0, -10)
+	debugCheckbox:SetPoint("TOPLEFT", customSizeCheckbox, "BOTTOMLEFT", 0, -12)
 	debugCheckbox:SetChecked(ClickerManager.settings.debug)
 end
 
@@ -445,8 +518,20 @@ function Clicker:SetEnabled(enabled)
 	end
 end
 
--- Register the module with the addon
-ns.RegisterModule(Clicker)
+-- Export the module
+ns.Clicker = Clicker
+ns.addon = ns.addon or {}
+ns.addon.Clicker = Clicker
+
+-- Register the module after a short delay to ensure main addon is loaded
+C_Timer.After(0, function()
+    if ns.RegisterModule then
+        ns.RegisterModule(Clicker)
+        ns.Debug("Clicker module registered")
+    else
+        print("[CellAdditions] ERROR: ns.RegisterModule not available for Clicker module")
+    end
+end)
 
 -- Register for layout changes
 if _G.CUF then

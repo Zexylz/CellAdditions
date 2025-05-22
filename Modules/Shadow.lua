@@ -1,11 +1,10 @@
 local addonName, ns = ...
 
--- Function to check if shadows are enabled
 local function AreShadowsEnabled()
     return CellAdditionsDB and CellAdditionsDB.shadowSettings and CellAdditionsDB.shadowSettings.enabled
 end
 
--- Create module with metatable for better performance
+
 local Shadow = setmetatable({
     id = "Shadow",
     name = "Shadow",
@@ -22,11 +21,7 @@ local Shadow = setmetatable({
     end
 })
 
--- Get references to Cell utilities
-local Cell = ns.Cell
-local L = Cell and Cell.L or {}
-local F = Cell and Cell.funcs or {}
-local P = Cell and Cell.pixelPerfectFuncs or {}
+-- Cell references will be retrieved dynamically when needed
 
 -- Constants
 local SHADOW_TEX = "Interface\\AddOns\\CellAdditions\\Media\\glowTex.tga"  -- Confirmed this file exists!
@@ -280,11 +275,22 @@ function Shadow:ScanForFrames()
         return
     end
 
-    -- Always try to apply shadow to CUF_Target
-    self:ApplyShadowToCUFTarget()
+    -- Apply shadows to all Cell unit frames
+    if self.settings.unitFrames.Target and self.settings.unitFrames.Target.enabled then
+        self:ApplyShadowToCUFTarget()
+    end
     
-    -- Also apply shadow to CUF_Focus
-    self:ApplyShadowToCUFFocus()
+    if self.settings.unitFrames.Focus and self.settings.unitFrames.Focus.enabled then
+        self:ApplyShadowToCUFFocus()
+    end
+    
+    if self.settings.unitFrames.TargetTarget and self.settings.unitFrames.TargetTarget.enabled then
+        self:ApplyShadowToCUFTargetTarget()
+    end
+    
+    if self.settings.unitFrames.Pet and self.settings.unitFrames.Pet.enabled then
+        self:ApplyShadowToCUFPet()
+    end
     
     -- Scan for solo frames
     for _, pattern in ipairs(framePatterns.Solo) do
@@ -437,8 +443,36 @@ function Shadow:UpdateAllShadows()
                         color = {r = 0.9, g = 0.7, b = 0.3, a = 1}
                         settings.raidHealthColor = {0.9, 0.7, 0.3, 1}
                     end
+                elseif settings.unitFrames[frameType] then
+                    -- For unit frames (Target, Focus, Pet, TargetTarget), use their specific colors
+                    if settings.unitFrames[frameType].healthColor then
+                        color = {
+                            r = settings.unitFrames[frameType].healthColor[1],
+                            g = settings.unitFrames[frameType].healthColor[2],
+                            b = settings.unitFrames[frameType].healthColor[3],
+                            a = settings.unitFrames[frameType].healthColor[4] or 1
+                        }
+                    else
+                        -- Default colors based on frame type
+                        if frameType == "Target" then
+                            color = {r = 0.9, g = 0.7, b = 0.3, a = 1} -- Orange
+                        elseif frameType == "Focus" then
+                            color = {r = 0.7, g = 0.3, b = 0.7, a = 1} -- Purple
+                        elseif frameType == "TargetTarget" then
+                            color = {r = 0.9, g = 0.3, b = 0.5, a = 1} -- Pink
+                        elseif frameType == "Pet" then
+                            color = {r = 0.5, g = 0.3, b = 0.7, a = 1} -- Dark purple
+                        else
+                            color = {r = 0.7, g = 0.9, b = 0.3, a = 1} -- Default lime
+                        end
+                        -- Create the healthColor table since it's missing
+                        if not settings.unitFrames[frameType] then
+                            settings.unitFrames[frameType] = {}
+                        end
+                        settings.unitFrames[frameType].healthColor = {color.r, color.g, color.b, color.a}
+                    end
                 elseif unitFrameTypes[frameType] and settings.unitFrames[frameType] then
-                    -- Unit frame color depends on whether it's health or power bar
+                    -- Legacy code for health/power bar detection (shouldn't be needed anymore)
                     local frameName = frame:GetName() or ""
                     if frameName:match("HealthBar") then
                         -- Check if healthColor exists
@@ -648,114 +682,75 @@ local function ApplyShadows()
     Shadow:CleanupShadows()
 end
 
--- Direct method for CUF_Target since it's having issues with the normal way
-function Shadow:ApplyShadowToCUFTarget()
-    local frame = _G["CUF_Target"]
+-- Apply shadow to Cell unit frames (Target, Focus, Pet, etc)
+function Shadow:ApplyShadowToCellUnitFrame(unitType)
+    -- Try multiple frame name patterns for the unit
+    local frameNames = {
+        "CUF_" .. unitType,
+        "Cell" .. unitType .. "Frame",
+        "CellUnitFrame" .. unitType,
+        "CellUnitButton_" .. unitType:lower(),
+        unitType .. "Frame"
+    }
+    
+    local frame = nil
+    for _, frameName in ipairs(frameNames) do
+        frame = _G[frameName]
+        if frame then
+            ns.Debug("Found " .. unitType .. " frame: " .. frameName)
+            break
+        end
+    end
+    
     if not frame then return false end
     
     -- Get user settings for the shadow
     local settings = self.settings
     if not settings or not settings.enabled then return false end
     
-    -- Get target-specific settings
-    local targetSettings = settings.unitFrames.Target
-    if not targetSettings or not targetSettings.enabled then return false end
+    -- Get unit-specific settings
+    local unitSettings = settings.unitFrames[unitType]
+    if not unitSettings or not unitSettings.enabled then return false end
     
     -- Get shadow size and color
     local size = settings.shadowSize or 5   
-    local color = targetSettings.healthColor or {0.9, 0.7, 0.3, 1}
+    local color = unitSettings.healthColor or {0.9, 0.7, 0.3, 1}
     
     -- Remove existing shadow if present
     if frame.shadow and self.frameRegistry[frame] then
         self.frameRegistry[frame]:Remove()
     end
     
-    -- Create new shadow frame
-    local shadowFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    shadowFrame:SetFrameLevel(0) -- Safe level that always works
+    -- Use CreateShadow function to maintain consistency
+    local shadow = CreateShadow(frame, unitType)
+    if shadow then
+        -- Update with proper color
+        shadow:Update(size, color[1], color[2], color[3], color[4] or 1)
+        ns.Debug("Successfully applied shadow to " .. unitType)
+        return true
+    end
     
-    -- Position the shadow
-    shadowFrame:SetPoint("TOPLEFT", -size, size)
-    shadowFrame:SetPoint("BOTTOMRIGHT", size, -size)
-    
-    -- Set backdrop
-    shadowFrame:SetBackdrop({
-        edgeFile = SHADOW_TEX,
-        edgeSize = size,
-        insets = { left = size, right = size, top = size, bottom = size },
-    })
-    
-    -- Apply user colors
-    shadowFrame:SetBackdropColor(0, 0, 0, 0)
-    shadowFrame:SetBackdropBorderColor(color[1], color[2], color[3], color[4] or 1)
-    
-    -- Create shadow object
-    local shadow = setmetatable({
-        frame = frame,
-        shadowFrame = shadowFrame,
-        frameType = "Target"
-    }, ShadowMT)
-    
-    -- Store in registry and on the frame
-    self.frameRegistry[frame] = shadow
-    frame.shadow = shadow
-    
-    return true
+    return false
 end
 
--- Direct method for CUF_Focus (based on target method)
+-- Direct method for CUF_Target since it's having issues with the normal way
+function Shadow:ApplyShadowToCUFTarget()
+    return self:ApplyShadowToCellUnitFrame("Target")
+end
+
+-- Direct method for CUF_Focus
 function Shadow:ApplyShadowToCUFFocus()
-    local frame = _G["CUF_Focus"]
-    if not frame then return false end
-    
-    -- Get user settings for the shadow
-    local settings = self.settings
-    if not settings or not settings.enabled then return false end
-    
-    -- Get focus-specific settings
-    local focusSettings = settings.unitFrames.Focus
-    if not focusSettings or not focusSettings.enabled then return false end
-    
-    -- Get shadow size and color
-    local size = settings.shadowSize or 5
-    local color = focusSettings.healthColor or {0.7, 0.3, 0.7, 1} -- Default purple for focus
-    
-    -- Remove existing shadow if present
-    if frame.shadow and self.frameRegistry[frame] then
-        self.frameRegistry[frame]:Remove()
-    end
-    
-    -- Create new shadow frame
-    local shadowFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    shadowFrame:SetFrameLevel(0) -- Safe level that always works
-    
-    -- Position the shadow
-    shadowFrame:SetPoint("TOPLEFT", -size, size)
-    shadowFrame:SetPoint("BOTTOMRIGHT", size, -size)
-    
-    -- Set backdrop
-    shadowFrame:SetBackdrop({
-        edgeFile = SHADOW_TEX,
-        edgeSize = size,
-        insets = { left = size, right = size, top = size, bottom = size },
-    })
-    
-    -- Apply user colors
-    shadowFrame:SetBackdropColor(0, 0, 0, 0)
-    shadowFrame:SetBackdropBorderColor(color[1], color[2], color[3], color[4] or 1)
-    
-    -- Create shadow object
-    local shadow = setmetatable({
-        frame = frame,
-        shadowFrame = shadowFrame,
-        frameType = "Focus"
-    }, ShadowMT)
-    
-    -- Store in registry and on the frame
-    self.frameRegistry[frame] = shadow
-    frame.shadow = shadow
-    
-    return true
+    return self:ApplyShadowToCellUnitFrame("Focus")
+end
+
+-- Direct method for CUF_TargetTarget
+function Shadow:ApplyShadowToCUFTargetTarget()
+    return self:ApplyShadowToCellUnitFrame("TargetTarget")
+end
+
+-- Direct method for CUF_Pet
+function Shadow:ApplyShadowToCUFPet()
+    return self:ApplyShadowToCellUnitFrame("Pet")
 end
 
 -- No special target function needed anymore
@@ -791,6 +786,7 @@ function Shadow:Initialize()
     end)
     
     -- Register for Cell events
+    local Cell = ns.Cell or _G.Cell
     if Cell and Cell.RegisterCallback then
         Cell:RegisterCallback("Cell_Init", function()
             C_Timer.After(0.5, function()
@@ -970,6 +966,25 @@ function Shadow:Initialize()
         end)
     end)
     
+    -- Add specialized pet frame event handling
+    local petFrame = CreateFrame("Frame")
+    petFrame:RegisterEvent("UNIT_PET")
+    petFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    
+    petFrame:SetScript("OnEvent", function(self, event)
+        -- Wait a moment for pet frame to be fully updated
+        C_Timer.After(0.2, function()
+            Shadow:ApplyShadowToCUFPet()
+            
+            if CellAdditionsDB.shadowSettings and 
+               CellAdditionsDB.shadowSettings.enabled then
+                ns.Debug("Pet changed, applying shadows")
+                Shadow:ScanForFrames()
+                Shadow:UpdateAllShadows()
+            end
+        end)
+    end)
+    
     -- Just do a single initial apply after a delay
     C_Timer.After(1, function()
         -- Apply all shadows once at startup
@@ -994,25 +1009,32 @@ function Shadow:CreateSettings(parent)
 
     ns.Debug("Creating Shadow settings panel")
     
+    -- Get Cell reference
+    local Cell = ns.Cell or _G.Cell
+    if not Cell then
+        ns.Debug("ERROR: Cell not available for Shadow settings")
+        return
+    end
+    
     -- Initialize settings if needed
     local settings = InitSettings()
     
     -- Create main container with proper padding
     local container = CreateFrame("Frame", nil, parent)
-    container:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
+    container:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -5)  -- Start closer to parent top
     container:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
     container:SetFrameLevel(parent:GetFrameLevel() + 1)
     
     -- Get accent color
     local accentColor = Cell.GetAccentColorTable()
     
-    -- Enable Shadow checkbox (placed at the very top)
+    -- Enable Shadow checkbox (moved down from the separator line)
     local enableShadowCB = Cell.CreateCheckButton(container, "Enable Shadow", function(checked)
         settings.enabled = checked
         ns.Debug("Shadow enabled: " .. tostring(checked))
         ApplyShadows()
     end)
-    enableShadowCB:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+    enableShadowCB:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -20)  -- Move down significantly
     enableShadowCB:SetChecked(settings.enabled)
     
     -- Shadow Settings header with proper spacing
@@ -1030,6 +1052,11 @@ function Shadow:CreateSettings(parent)
     shadowSizeSlider:SetPoint("TOPLEFT", shadowSizeText, "BOTTOMLEFT", 0, -5)
     shadowSizeSlider:SetLabel("")
     shadowSizeSlider:SetValue(settings.shadowSize)
+    shadowSizeSlider.afterValueChangedFn = function(value)
+        settings.shadowSize = math.floor(value)
+        ns.Debug("Shadow size changed to: " .. settings.shadowSize)
+        ApplyShadows()
+    end
     
     -- Cell section with consistent separator spacing
     local cellSeparator = Cell.CreateSeparator("Cell", container)
@@ -1043,7 +1070,7 @@ function Shadow:CreateSettings(parent)
         ns.Debug("Solo frame shadows: " .. tostring(checked))
         ApplyShadows()
     end)
-    soloFrameCB:SetPoint("TOPLEFT", cellSeparator, "BOTTOMLEFT", 10, -10)
+    soloFrameCB:SetPoint("TOPLEFT", cellSeparator, "BOTTOMLEFT", 0, -10)
     soloFrameCB:SetChecked(settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.enabled)
     
     -- Solo Frame color swatch aligned with checkbox
@@ -1062,6 +1089,13 @@ function Shadow:CreateSettings(parent)
     end)
     soloColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
     soloColorSwatch:SetPoint("TOP", soloFrameCB, "TOP", 0, 0)
+    -- Set initial color
+    if settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.healthColor then
+        local c = settings.unitFrames.Solo.healthColor
+        soloColorSwatch:SetColor(c[1], c[2], c[3], c[4])
+    else
+        soloColorSwatch:SetColor(0.7, 0.9, 0.3, 1)
+    end
     
     -- Party Frames checkbox
     local partyFramesCB = Cell.CreateCheckButton(container, "Party Frames", function(checked)
@@ -1081,7 +1115,13 @@ function Shadow:CreateSettings(parent)
     end)
     partyColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
     partyColorSwatch:SetPoint("TOP", partyFramesCB, "TOP", 0, 0)
-    partyColorSwatch:SetColor(0.7, 0.9, 0.3, 1) -- Lime green
+    -- Set initial color
+    if settings.partyHealthColor then
+        local c = settings.partyHealthColor
+        partyColorSwatch:SetColor(c[1], c[2], c[3], c[4])
+    else
+        partyColorSwatch:SetColor(0.7, 0.9, 0.3, 1) -- Lime green
+    end
     
     -- Raid Frames checkbox
     local raidFramesCB = Cell.CreateCheckButton(container, "Raid Frames", function(checked)
@@ -1101,22 +1141,30 @@ function Shadow:CreateSettings(parent)
     end)
     raidColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
     raidColorSwatch:SetPoint("TOP", raidFramesCB, "TOP", 0, 0)
-    raidColorSwatch:SetColor(0.9, 0.7, 0.3, 1) -- Orange
+    -- Set initial color
+    if settings.raidHealthColor then
+        local c = settings.raidHealthColor
+        raidColorSwatch:SetColor(c[1], c[2], c[3], c[4])
+    else
+        raidColorSwatch:SetColor(0.9, 0.7, 0.3, 1) -- Orange
+    end
     
     -- Cell - Unit Frames section with separator
     local unitFramesSeparator = Cell.CreateSeparator("Cell - Unit Frames", container)
     unitFramesSeparator:SetPoint("TOPLEFT", raidFramesCB, "BOTTOMLEFT", -10, -15)
     
-    -- Create column headers for HB and PB with more spacing
+    -- Create column headers for HB and PB - centered over color pickers
     local hbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    hbLabel:SetPoint("TOPRIGHT", container, "TOPRIGHT", -45, 0)
-    hbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -8)
+    hbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -5)
+    hbLabel:SetPoint("RIGHT", container, "RIGHT", -32, 0)  -- Center over HB swatch (-35 - 10)
     hbLabel:SetText("HB")
+    hbLabel:SetJustifyH("CENTER")
     
     local pbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    pbLabel:SetPoint("TOPRIGHT", container, "TOPRIGHT", -15, 0)
-    pbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -8)
+    pbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -5)
+    pbLabel:SetPoint("RIGHT", container, "RIGHT", -4, 0)  -- Center over PB swatch (-5 - 10)
     pbLabel:SetText("PB")
+    pbLabel:SetJustifyH("CENTER")
     
     -- Unit frames definitions
     local unitFrames = {
@@ -1166,11 +1214,11 @@ function Shadow:CreateSettings(parent)
         end)
         
         if i == 1 then
-            -- First unit frame has more space below the column headers
-            unitCB:SetPoint("TOPLEFT", unitFramesSeparator, "BOTTOMLEFT", 10, -30)
+            -- First unit frame positioned below the column headers
+            unitCB:SetPoint("TOPLEFT", unitFramesSeparator, "BOTTOMLEFT", 0, -20)
         else
-            -- More space between unit frame checkboxes
-            unitCB:SetPoint("TOPLEFT", prevElement, "BOTTOMLEFT", 0, -8)
+            -- Consistent spacing between unit frame checkboxes
+            unitCB:SetPoint("TOPLEFT", prevElement, "BOTTOMLEFT", 0, -5)
         end
         unitCB:SetChecked(unitSettings.enabled)
         
@@ -1193,7 +1241,7 @@ function Shadow:CreateSettings(parent)
             ApplyShadows()
         end)
         healthSwatch:SetPoint("TOP", unitCB, "TOP", 0, 0)
-        healthSwatch:SetPoint("RIGHT", hbLabel, "RIGHT", 0, 0)
+        healthSwatch:SetPoint("RIGHT", container, "RIGHT", -35, 0)  -- Fixed position for HB column
         healthSwatch:SetColor(healthColor[1], healthColor[2], healthColor[3], healthColor[4])
         
         -- Power bar color swatch (PB)
@@ -1208,7 +1256,7 @@ function Shadow:CreateSettings(parent)
             ApplyShadows()
         end)
         powerSwatch:SetPoint("TOP", unitCB, "TOP", 0, 0)
-        powerSwatch:SetPoint("RIGHT", pbLabel, "RIGHT", 0, 0)
+        powerSwatch:SetPoint("RIGHT", container, "RIGHT", -5, 0)  -- Fixed position for PB column
         powerSwatch:SetColor(powerColor[1], powerColor[2], powerColor[3], powerColor[4])
         
         prevElement = unitCB
@@ -1238,5 +1286,17 @@ function Shadow:SetEnabled(enabled)
     end
 end
 
--- Register the module
-ns.RegisterModule(Shadow) 
+-- Export the module
+ns.Shadow = Shadow
+ns.addon = ns.addon or {}
+ns.addon.Shadow = Shadow
+
+-- Register the module after a short delay to ensure main addon is loaded
+C_Timer.After(0, function()
+    if ns.RegisterModule then
+        ns.RegisterModule(Shadow)
+        ns.Debug("Shadow module registered")
+    else
+        print("[CellAdditions] ERROR: ns.RegisterModule not available for Shadow module")
+    end
+end) 
