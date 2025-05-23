@@ -1,0 +1,40 @@
+name: Lua Linting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Run Lua Language Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build unzip curl
+
+      - name: Set up Lua Language Server
+        run: |
+          git clone https://github.com/LuaLS/lua-language-server.git
+          cd lua-language-server
+          git submodule update --init --recursive
+          cd 3rd/luamake
+          ./compile/install.sh
+          cd ../..
+          ./3rd/luamake/luamake rebuild
+
+      - name: Run Lua Language Server check
+        run: |
+          ./lua-language-server/bin/lua-language-server --check \
+            cell-additions.lua \
+            Modules/Clicker.lua \
+            Modules/Shadow.lua \
+            API/FrameState.lua \
+            API/UIFrames.lua
