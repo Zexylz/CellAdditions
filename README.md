@@ -45,7 +45,7 @@ CellAdditions/<br/>
 
 ## 📸 Screenshots
 
-*(Optional – insert screenshots here)*   SOON™
+SOON™
 
 ## 📜 License
 
