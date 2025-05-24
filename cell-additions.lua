@@ -790,17 +790,31 @@ function CellIntegration:HideAdditionsPanel()
 	-- Clear additions state
 	ns.wasShowingAdditions = false
 	
+	-- Restore utilities tab content if we were in utilities
+	if Cell.frames.utilitiesTab then
+		Cell.frames.utilitiesTab:Show()
+		Utils:Debug("Restored utilities tab visibility")
+		
+		-- Also ensure utility content is visible
+		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
+			if child:IsObjectType("Frame") and child ~= Cell.frames.utilitiesTab.mask then
+				child:Show()
+				Utils:Debug("Restored utility content visibility")
+			end
+		end
+	end
+	
 	-- DON'T manually set height - let Cell handle it
 	-- Cell will automatically set the correct height when showing the target tab
 	
-	Utils:Debug("Hidden additions panel - letting Cell manage height")
+	Utils:Debug("Hidden additions panel and restored utilities content")
 end
 
 function CellIntegration:HideAllCellTabContent()
 	local Cell = _G.Cell
 	if not Cell or not Cell.frames then return end
 	
-	-- Get list of all Cell tab frames
+	-- Get list of Cell tab frames (excluding utilities since we want to stay in utilities)
 	local tabFrames = {
 		"generalTab",
 		"appearanceTab", 
@@ -808,11 +822,10 @@ function CellIntegration:HideAllCellTabContent()
 		"clickCastingsTab",
 		"indicatorsTab",
 		"debuffsTab",
-		"utilitiesTab",
 		"aboutTab"
 	}
 	
-	-- Hide all tab frames
+	-- Hide all other tab frames
 	for _, tabName in ipairs(tabFrames) do
 		if Cell.frames[tabName] then
 			Cell.frames[tabName]:Hide()
@@ -820,16 +833,19 @@ function CellIntegration:HideAllCellTabContent()
 		end
 	end
 	
-	-- Also hide any utility content that might be showing
+	-- For utilities tab, we want to keep the tab frame visible but hide its content
+	-- This way we can properly restore it later
 	if Cell.frames.utilitiesTab then
+		-- Keep the utilities tab frame visible but hide its content temporarily
 		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
 			if child:IsObjectType("Frame") and child ~= Cell.frames.utilitiesTab.mask then
 				child:Hide()
+				Utils:Debug("Hidden utility content frame")
 			end
 		end
 	end
 	
-	Utils:Debug("Hidden all Cell tab content properly")
+	Utils:Debug("Hidden Cell tab content while preserving utilities tab structure")
 end
 
 function CellIntegration:GetCurrentCellTab()
