@@ -707,59 +707,84 @@ function CellIntegration:RegisterCallbacks()
 		return
 	end
 	
-	-- Tab switching callback
-	Cell.RegisterCallback("ShowOptionsTab", "CellAdditions_ShowTab", function(_, tab)
-		tab = tab or "general"
-		
-		-- Store original dimensions on first access if not already stored
-		if Cell.frames.optionsFrame and not ns.originalOptionsFrameHeight then
-			ns.originalOptionsFrameHeight = Cell.frames.optionsFrame:GetHeight()
-			ns.originalOptionsFrameWidth = Cell.frames.optionsFrame:GetWidth()
-			Utils:Debug("Stored original frame dimensions on first tab switch: " .. ns.originalOptionsFrameWidth .. "x" .. ns.originalOptionsFrameHeight)
-		end
-		
-		-- Always restore original height when switching tabs (except when showing additions)
-		if tab ~= "custom_additions" and Cell.frames.optionsFrame and ns.originalOptionsFrameHeight then
-			Cell.frames.optionsFrame:SetHeight(ns.originalOptionsFrameHeight)
-			Utils:Debug("Restored original height: " .. ns.originalOptionsFrameHeight)
-		end
-		
-		if Cell.frames.additionsPanel then
-			Cell.frames.additionsPanel:Hide()
-		end
-		
-		if tab == "custom_additions" then
-			self:HideAllTabs()
-			if Cell.frames.additionsPanel then
-				Cell.frames.additionsPanel:Show()
-			end
-		else
-				local tabFrameName = tab .. "Tab"
-				if Cell.frames[tabFrameName] then
-					Cell.frames[tabFrameName]:Show()
-			end
-		end
-	end)
-
-	-- Utility settings callback
-	Cell.RegisterCallback("ShowUtilitySettings", "CellAdditions_HidePanel", function(utilityName)
-		if Cell.frames.additionsPanel then
-			Cell.frames.additionsPanel:Hide()
-		end
-		-- Restore original frame height when showing other utilities
-		if Cell.frames.optionsFrame and ns.originalOptionsFrameHeight then
-			Cell.frames.optionsFrame:SetHeight(ns.originalOptionsFrameHeight)
-			Utils:Debug("Restored height when showing utility: " .. (utilityName or "unknown"))
-		end
-		if Cell.frames.utilitiesTab then
-			Cell.frames.utilitiesTab:Show()
-		end
-	end)
-
 	-- Custom event for showing additions panel
 	Cell.RegisterCallback("CellAdditions_ShowAdditionsPanel", "CellAdditions_ShowAdditionsPanel", function()
 		self:ShowAdditionsPanel()
 	end)
+	
+	-- Hook Cell's actual tab buttons for foolproof height management
+	self:HookTabButtons()
+end
+
+function CellIntegration:HookTabButtons()
+	local Cell = _G.Cell
+	if not Cell or not Cell.frames or not Cell.frames.optionsFrame then
+		-- Try again later if Cell isn't ready
+		C_Timer.After(1, function() self:HookTabButtons() end)
+		return
+	end
+	
+	Utils:Debug("Hooking Cell tab buttons for height management")
+	
+	-- Find all tab buttons in the options frame
+	local tabButtons = {}
+	local function findTabButtons(frame)
+		for _, child in pairs({frame:GetChildren()}) do
+			if child:IsObjectType("Button") and child.id then
+				-- These are Cell's tab buttons
+				if child.id == "general" or child.id == "appearance" or child.id == "layouts" or 
+				   child.id == "clickCastings" or child.id == "indicators" or child.id == "debuffs" or 
+				   child.id == "utilities" or child.id == "about" then
+					tabButtons[child.id] = child
+					Utils:Debug("Found tab button: " .. child.id)
+				end
+			end
+		end
+	end
+	
+	findTabButtons(Cell.frames.optionsFrame)
+	
+	-- Hook each tab button's OnClick script
+	for tabId, button in pairs(tabButtons) do
+		if button:GetScript("OnClick") then
+			local originalOnClick = button:GetScript("OnClick")
+			button:SetScript("OnClick", function(...)
+				-- Check if we're leaving the additions panel
+				local wasShowingAdditions = Cell.frames.additionsPanel and Cell.frames.additionsPanel:IsShown()
+				
+				if wasShowingAdditions then
+					Utils:Debug("Leaving additions panel for tab: " .. tabId)
+					-- Hide the additions panel
+					if Cell.frames.additionsPanel then
+						Cell.frames.additionsPanel:Hide()
+					end
+					
+					-- Force height reset to Cell's original height
+					local optionsFrame = Cell.frames.optionsFrame
+					if optionsFrame then
+						-- Use Cell's original height or a sensible default
+						local targetHeight = ns.originalOptionsFrameHeight or 400
+						optionsFrame:SetHeight(targetHeight)
+						Utils:Debug("Reset frame height to: " .. targetHeight)
+					end
+				end
+				
+				-- Call the original click handler
+				return originalOnClick(...)
+			end)
+			Utils:Debug("Hooked tab button: " .. tabId)
+		end
+	end
+	
+	Utils:Debug("Completed hooking " .. self:CountTable(tabButtons) .. " tab buttons")
+end
+
+function CellIntegration:CountTable(tbl)
+	local count = 0
+	for _ in pairs(tbl) do
+		count = count + 1
+	end
+	return count
 end
 
 function CellIntegration:HideAllTabs()
@@ -778,32 +803,33 @@ function CellIntegration:HideAllTabs()
 	end
 end
 
+
+
 function CellIntegration:ShowAdditionsPanel()
 	local Cell = _G.Cell
 	if not Cell or not Cell.frames then return end
 	
 	-- Hide utility children
-		if Cell.frames.utilitiesTab then
+	if Cell.frames.utilitiesTab then
 		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
-				if child:IsObjectType("Frame") then
-					child:Hide()
-				end
+			if child:IsObjectType("Frame") then
+				child:Hide()
 			end
+		end
 	end
 	
 	local panel = Cell.frames.additionsPanel
 	if not panel then return end
 	
-			local optionsFrame = Cell.frames.optionsFrame
+	local optionsFrame = Cell.frames.optionsFrame
 	local contentFrame = optionsFrame.content or optionsFrame
 	
-	-- Store original dimensions
-	if not ns.originalOptionsFrameHeight then
-					ns.originalOptionsFrameHeight = optionsFrame:GetHeight()
+	-- Extend frame height to accommodate our additions panel
+	local currentHeight = optionsFrame:GetHeight()
+	if currentHeight < 550 then
+		optionsFrame:SetHeight(550)
+		Utils:Debug("Extended frame height from " .. currentHeight .. " to 550")
 	end
-	
-	-- Extend frame height
-	optionsFrame:SetHeight(550)
 	
 	-- Parent panel to content area
 	panel:SetParent(contentFrame)
@@ -891,6 +917,19 @@ function CellAdditions:Initialize()
 				Utils:Debug("Captured original frame dimensions on Show: " .. ns.originalOptionsFrameWidth .. "x" .. ns.originalOptionsFrameHeight)
 			end
 		end)
+		
+		-- Also hook SetHeight to ensure we don't interfere with Cell's height changes
+		local originalSetHeight = Cell.frames.optionsFrame.SetHeight
+		Cell.frames.optionsFrame.SetHeight = function(self, height)
+			-- If this is Cell setting the height and we're not showing additions, update our stored height
+			if not Cell.frames.additionsPanel or not Cell.frames.additionsPanel:IsShown() then
+				if height ~= 550 then -- 550 is our extended height
+					ns.originalOptionsFrameHeight = height
+					Utils:Debug("Updated stored height to: " .. height)
+				end
+			end
+			return originalSetHeight(self, height)
+		end
 	end
 	
 	Utils:Debug("CellAdditions initialized successfully")
@@ -932,4 +971,10 @@ ns.GetModuleSettingsFrame = function(moduleId)
 		return ns.ui.frames.settingsFrame.scrollFrame.content
 	end
 	return nil
+end
+
+-- Global function for texture registration
+_G.CellAdditions_RegisterTextures = function(textureList)
+	_G.CellAdditions_PendingTextures = textureList
+	Utils:Debug("Registered " .. #textureList .. " user textures")
 end

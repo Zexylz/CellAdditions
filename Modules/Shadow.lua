@@ -1,1302 +1,870 @@
 local addonName, ns = ...
 
-local function AreShadowsEnabled()
-    return CellAdditionsDB and CellAdditionsDB.shadowSettings and CellAdditionsDB.shadowSettings.enabled
-end
+-- ============================================================================
+-- Shadow Module - Advanced OOP Implementation
+-- ============================================================================
 
+local Shadow = {}
+Shadow.__index = Shadow
+ns.Shadow = Shadow
 
-local Shadow = setmetatable({
-    id = "Shadow",
-    name = "Shadow",
-    description = "Apply shadows to Cell frames",
-    frameRegistry = setmetatable({}, {__mode = "k"}), -- weak table to allow garbage collection
-    updateThrottle = 0.1,
-    lastUpdate = 0
-}, {
-    __index = function(t, k)
-        if k == "settings" then
-            return CellAdditionsDB.shadowSettings
-        end
-        return nil
-    end
-})
-
--- Cell references will be retrieved dynamically when needed
+-- Module metadata
+Shadow.name = "Shadow"
+Shadow.id = "Shadow"
+Shadow.description = "Apply customizable shadows to Cell unit frames"
+Shadow.version = "2.0"
 
 -- Constants
-local SHADOW_TEX = "Interface\\AddOns\\CellAdditions\\Media\\glowTex.tga"  -- Confirmed this file exists!
+local SHADOW_TEXTURE = "Interface/AddOns/CellAdditions/Media/glowTex.tga"
+local FRAME_STRATA = "BACKGROUND"
+local SHADOW_INSET_MULTIPLIER = 1.2
+local SHADOW_SIZE_MULTIPLIER = 1.5
+local MIN_ALPHA = 0.7
 
--- Frame patterns for detection
-local framePatterns = {
-    ["Solo"] = {
-        "CellSoloFramePlayer",
-        "CellSoloFrame",
-        "Cell_SoloFrame",
-        "CellSoloPlayerFrame", -- Add this back in to ensure it works
-    },
-    ["Party"] = {
-        "CellPartyFrameHeaderUnitButton%d",
-    },
-    ["Raid"] = {
-        "CellRaidFrameHeader%dUnitButton%d",
-    },
-    ["Target"] = {
-        "TargetFrame",
-        "CellTargetFrame",
-        "CellUnitFrameTarget",
-        "CellUnitButton_target"
-    },
+-- Default settings
+local DEFAULT_SETTINGS = {
+	enabled = true,
+	shadowSize = 5,
+	
+	-- Frame type configurations
+	frameTypes = {
+		solo = {
+			enabled = true,
+			color = {0.7, 0.9, 0.3, 1}
+		},
+		party = {
+			enabled = true,
+			color = {0.7, 0.9, 0.3, 1}
+		},
+		raid = {
+			enabled = false,
+			color = {0.9, 0.7, 0.3, 1}
+		}
+	},
+	
+	-- Unit frame configurations
+	unitFrames = {
+		Player = {
+			enabled = true,
+			healthColor = {0.7, 0.9, 0.3, 1},
+			powerColor = {0.9, 0.7, 0.3, 1}
+		},
+		Target = {
+			enabled = true,
+			healthColor = {0.9, 0.7, 0.3, 1},
+			powerColor = {0.9, 0.5, 0.3, 1}
+		},
+		TargetTarget = {
+			enabled = false,
+			healthColor = {0.9, 0.3, 0.5, 1},
+			powerColor = {0.9, 0.3, 0.5, 1}
+		},
+		Focus = {
+			enabled = true,
+			healthColor = {0.7, 0.3, 0.7, 1},
+			powerColor = {0.5, 0.3, 0.7, 1}
+		},
+		Pet = {
+			enabled = false,
+			healthColor = {0.5, 0.3, 0.7, 1},
+			powerColor = {0.5, 0.3, 0.7, 1}
+		}
+	}
 }
 
--- UnitFrame types and their corresponding frame names
-local unitFrameTypes = {
-    Player = {
-        healthBar = "CUF_Player_HealthBar",
-        powerBar = "CUF_Player_PowerBar",
-        -- Add alternative frame names to check
-        altHealthBar = "PlayerFrameHealthBar",
-        altPowerBar = "PlayerFrameManaBar",
-        -- Cell-specific frames
-        cellHealthBar = "CellUnitFramePlayerHealthBar",
-        cellPowerBar = "CellUnitFramePlayerPowerBar"
-    },
-    Target = {
-        -- Add CUF_Target so it works like other frames
-        frame = "CUF_Target",
-        healthBar = "CUF_Target_HealthBar", 
-        powerBar = "CUF_Target_PowerBar",
-        -- Add alternative frame names that Cell might be using
-        altHealthBar = "TargetFrameHealthBar",
-        altPowerBar = "TargetFrameManaBar",
-        -- Cell-specific frames
-        cellHealthBar = "CellUnitFrameTargetHealthBar",
-        cellPowerBar = "CellUnitFrameTargetPowerBar"
-    },
-    TargetTarget = {
-        healthBar = "CUF_TargetTarget_HealthBar",
-        powerBar = "CUF_TargetTarget_PowerBar",
-        -- Add alternative frame names
-        altHealthBar = "TargetFrameToTHealthBar",
-        altPowerBar = "TargetFrameToTManaBar",
-        -- Cell-specific frames
-        cellHealthBar = "CellUnitFrameTargetTargetHealthBar",
-        cellPowerBar = "CellUnitFrameTargetTargetPowerBar"
-    },
-    Focus = {
-        healthBar = "CUF_Focus_HealthBar",
-        powerBar = "CUF_Focus_PowerBar",
-        -- Add alternative frame names
-        altHealthBar = "FocusFrameHealthBar",
-        altPowerBar = "FocusFrameManaBar",
-        -- Cell-specific frames
-        cellHealthBar = "CellUnitFrameFocusHealthBar",
-        cellPowerBar = "CellUnitFrameFocusPowerBar"
-    },
-    Pet = {
-        healthBar = "CUF_Pet_HealthBar",
-        powerBar = "CUF_Pet_PowerBar",
-        -- Add alternative frame names
-        altHealthBar = "PetFrameHealthBar",
-        altPowerBar = "PetFrameManaBar",
-        -- Cell-specific frames
-        cellHealthBar = "CellUnitFramePetHealthBar",
-        cellPowerBar = "CellUnitFramePetPowerBar"
-    }
+-- Frame detection patterns
+local FRAME_PATTERNS = {
+	solo = {
+		"CellSoloFramePlayer",
+		"CellSoloFrame"
+	},
+	party = {
+		"CellPartyFrameHeaderUnitButton%d"
+	},
+	raid = {
+		"CellRaidFrameHeader%dUnitButton%d"
+	},
+	unitframes = {
+		Player = {"CUF_Player", "CellUnitFramePlayer"},
+		Target = {"CUF_Target", "TargetFrame", "CellUnitFrameTarget"},
+		TargetTarget = {"CUF_TargetTarget", "TargetFrameToT"},
+		Focus = {"CUF_Focus", "FocusFrame", "CellUnitFrameFocus"},
+		Pet = {"CUF_Pet", "PetFrame", "CellUnitFramePet"}
+	}
 }
 
--- Shadow prototype
-local ShadowPrototype = {}
+-- ============================================================================
+-- Utility Functions
+-- ============================================================================
 
-function ShadowPrototype:Update(size, r, g, b, a)
-    if not self.frame or not self.shadowFrame then return end
-    
-    local frameName = self.frame:GetName() or "unnamed"
-    ns.Debug("Updating shadow for " .. frameName .. ": size=" .. size .. ", color=" .. r .. "," .. g .. "," .. b .. "," .. a)
-    
-    -- Make shadows more visible - use a larger size and offset
-    local effectiveSize = size * 1.5  -- Make shadow bigger for visibility
-    
-    -- Update size with a larger offset to make shadow more visible
-    self.shadowFrame:SetPoint("TOPLEFT", -effectiveSize, effectiveSize)
-    self.shadowFrame:SetPoint("BOTTOMRIGHT", effectiveSize, -effectiveSize)
-    
-    -- Update backdrop with more visible settings
-    self.shadowFrame:SetBackdrop({
-        edgeFile = SHADOW_TEX,
-        edgeSize = effectiveSize,
-        insets = { left = effectiveSize, right = effectiveSize, top = effectiveSize, bottom = effectiveSize },
-    })
-    
-    -- Update color - ensure high alpha (at least 0.8) for visibility
-    self.shadowFrame:SetBackdropColor(0, 0, 0, 0)
-    local effectiveAlpha = math.max(0.8, a or 1)  -- Ensure alpha is at least 0.8
-    self.shadowFrame:SetBackdropBorderColor(r, g, b, effectiveAlpha)
-    
-    -- Make sure the shadow is shown
-    self.shadowFrame:Show()
-    
-    ns.Debug("Shadow updated with enhanced visibility for " .. frameName)
+local Utils = {}
+
+function Utils:Debug(msg)
+	if ns.Debug then
+		ns.Debug("[Shadow] " .. tostring(msg))
+	end
 end
 
-function ShadowPrototype:Show()
-    if self.shadowFrame then
-        self.shadowFrame:Show()
-    end
+function Utils:DeepCopy(orig)
+	local copy
+	if type(orig) == 'table' then
+		copy = {}
+		for k, v in pairs(orig) do
+			copy[k] = self:DeepCopy(v)
+		end
+	else
+		copy = orig
+	end
+	return copy
 end
 
-function ShadowPrototype:Hide()
-    if self.shadowFrame then
-        self.shadowFrame:Hide()
-    end
+function Utils:MergeDefaults(settings, defaults)
+	for key, value in pairs(defaults) do
+		if settings[key] == nil then
+			settings[key] = value
+		elseif type(value) == "table" and type(settings[key]) == "table" then
+			self:MergeDefaults(settings[key], value)
+		end
+	end
 end
 
-function ShadowPrototype:Remove()
-    if self.shadowFrame then
-        self.shadowFrame:Hide()
-        self.shadowFrame = nil
-    end
-    Shadow.frameRegistry[self.frame] = nil
+function Utils:IsFrameValid(frame)
+	return frame and 
+		   type(frame.IsVisible) == "function" and 
+		   frame:IsVisible() and 
+		   frame:GetAlpha() > 0
 end
 
--- Shadow metatable
-local ShadowMT = {
-    __index = ShadowPrototype
-}
+-- ============================================================================
+-- Settings Manager
+-- ============================================================================
 
--- Create shadow for a frame
-local function CreateShadow(frame, frameType)
-    if not frame or not frame.SetPoint or frame.shadow then
-        return nil
-    end
-    
-    -- Debug output for more information
-    local frameName = frame:GetName() or "unnamed"
-    ns.Debug("Creating shadow for " .. frameName .. " (" .. (frameType or "unknown") .. ")")
-    
-    -- Create shadow frame
-    local shadowFrame = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    
-    -- Get frame level safely
-    local currentLevel = 0
-    local success = pcall(function() currentLevel = frame:GetFrameLevel() end)
-    
-    -- Set frame level safely with a default if there's an error
-    if success and currentLevel > 0 then
-        shadowFrame:SetFrameLevel(currentLevel - 1)
-        ns.Debug("Shadow frame level set to: " .. (currentLevel - 1))
-    else
-        shadowFrame:SetFrameLevel(0) -- Use a safe default
-        ns.Debug("Using default shadow frame level: 0")
-    end
-    
-    -- Create shadow object
-    local shadow = setmetatable({
-        frame = frame,
-        shadowFrame = shadowFrame,
-        frameType = frameType
-    }, ShadowMT)
-    
-    -- Store in registry
-    Shadow.frameRegistry[frame] = shadow
-    
-    -- Initial update
-    local settings = Shadow.settings
-    local size = settings.shadowSize or 5
-    local color = {
-        r = 0,
-        g = 0,
-        b = 0,
-        a = 1
-    }
-    
-    shadow:Update(size, color.r, color.g, color.b, color.a)
-    
-    -- Store reference on the frame
-    frame.shadow = shadow
-    
-    ns.Debug("Shadow created successfully for " .. frameName)
-    
-    return shadow
+local SettingsManager = {}
+SettingsManager.__index = SettingsManager
+
+function SettingsManager:New()
+	local instance = setmetatable({}, self)
+	instance.settings = nil
+	return instance
 end
 
--- Helper to check if a frame is actually visible
-local function IsFrameActuallyVisible(frame)
-    if not frame then return false end
-    
-    -- Basic visibility check
-    if not frame:IsVisible() or frame:GetAlpha() <= 0 then
-        return false
-    end
-    
-    -- Try to get name (might be nil for some frames)
-    local name = frame:GetName() or ""
-    
-    -- Extra checks for raid/party frames
-    if name:match("CellRaidFrameHeader%dUnitButton%d") then
-        -- For raid frames, check if they have a unit assigned
-        if frame.unit or (frame.state and frame.state.unit) then
-            return true
-        end
-        return false
-    end
-    
-    -- For other frames, use basic visibility
-    return true
+function SettingsManager:Initialize()
+	CellAdditionsDB = CellAdditionsDB or {}
+	
+	if not CellAdditionsDB.shadowSettings then
+		CellAdditionsDB.shadowSettings = Utils:DeepCopy(DEFAULT_SETTINGS)
+		Utils:Debug("Created default shadow settings")
+	else
+		Utils:MergeDefaults(CellAdditionsDB.shadowSettings, DEFAULT_SETTINGS)
+		Utils:Debug("Merged default settings with existing")
+	end
+	
+	self.settings = CellAdditionsDB.shadowSettings
+	Utils:Debug("Settings manager initialized")
 end
 
--- Get the type of a frame
-function Shadow:GetFrameType(frame)
-    if not frame then return nil end
-    
-    -- Try to get name (might be nil for some frames)
-    local name = frame:GetName() or ""
-    
-    -- Check patterns
-    for frameType, patterns in pairs(framePatterns) do
-        for _, pattern in ipairs(patterns) do
-            if name:match(pattern) then
-                return frameType
-            end
-        end
-    end
-    
-    return nil
+function SettingsManager:Get(key)
+	return self.settings[key]
 end
 
--- Scan for all relevant frames
-function Shadow:ScanForFrames()
-    -- Check if shadows are enabled first
-    if not AreShadowsEnabled() then
-        -- Remove all shadows if disabled
-        for frame, shadow in pairs(self.frameRegistry) do
-            shadow:Remove()
-        end
-        ns.Debug("Shadows disabled, not scanning for frames")
-        return
-    end
-
-    -- Apply shadows to all Cell unit frames
-    if self.settings.unitFrames.Target and self.settings.unitFrames.Target.enabled then
-        self:ApplyShadowToCUFTarget()
-    end
-    
-    if self.settings.unitFrames.Focus and self.settings.unitFrames.Focus.enabled then
-        self:ApplyShadowToCUFFocus()
-    end
-    
-    if self.settings.unitFrames.TargetTarget and self.settings.unitFrames.TargetTarget.enabled then
-        self:ApplyShadowToCUFTargetTarget()
-    end
-    
-    if self.settings.unitFrames.Pet and self.settings.unitFrames.Pet.enabled then
-        self:ApplyShadowToCUFPet()
-    end
-    
-    -- Scan for solo frames
-    for _, pattern in ipairs(framePatterns.Solo) do
-        local frame = _G[pattern]
-        if frame and IsFrameActuallyVisible(frame) then
-            if not self.frameRegistry[frame] then
-                CreateShadow(frame, "Solo")
-            end
-        end
-    end
-    
-    -- Scan for party frames
-    for i = 1, 5 do
-        local frameName = "CellPartyFrameHeaderUnitButton" .. i
-        local frame = _G[frameName]
-        if frame and IsFrameActuallyVisible(frame) then
-            if not self.frameRegistry[frame] then
-                CreateShadow(frame, "Party")
-            end
-        end
-    end
-    
-    -- Scan for raid frames
-    for i = 1, 8 do
-        for j = 1, 5 do
-            local frameName = "CellRaidFrameHeader" .. i .. "UnitButton" .. j
-            local frame = _G[frameName]
-            if frame and IsFrameActuallyVisible(frame) then
-                if not self.frameRegistry[frame] then
-                    CreateShadow(frame, "Raid")
-                end
-            end
-        end
-    end
-    
-    -- Scan for target frames specifically
-    if self.settings.unitFrames.Target and self.settings.unitFrames.Target.enabled then
-        -- Check framePatterns.Target list
-        for _, pattern in ipairs(framePatterns.Target) do
-            local frame = _G[pattern]
-            if frame then
-                if not self.frameRegistry[frame] then
-                    ns.Debug("Found target frame: " .. pattern)
-                    CreateShadow(frame, "Target")
-                end
-            end
-        end
-        
-        -- Also try additional patterns like health bars
-        local targetHealthBar = _G["TargetFrameHealthBar"]
-        if targetHealthBar and not self.frameRegistry[targetHealthBar] then
-            ns.Debug("Found TargetFrameHealthBar")
-            CreateShadow(targetHealthBar, "Target")
-        end
-    end
-    
-    -- Scan for unit frames
-    for unitType, frames in pairs(unitFrameTypes) do
-        if self.settings.unitFrames[unitType] and self.settings.unitFrames[unitType].enabled then
-            for barType, frameName in pairs(frames) do
-                local frame = _G[frameName]
-                if frame then
-                    if not self.frameRegistry[frame] then
-                        ns.Debug("Creating shadow for " .. unitType .. " frame: " .. (frameName or "unnamed"))
-                        CreateShadow(frame, unitType)
-                    end
-                end
-            end
-        end
-    end
+function SettingsManager:Set(key, value)
+	self.settings[key] = value
 end
 
--- Update all shadows based on current settings
-function Shadow:UpdateAllShadows()
-    -- Check if shadows are enabled first
-    if not AreShadowsEnabled() then
-        -- Remove all shadows if disabled
-        for frame, shadow in pairs(self.frameRegistry) do
-            shadow:Remove()
-        end
-        ns.Debug("Shadows disabled, removing all shadows")
-        return
-    end
+function SettingsManager:GetAll()
+	return self.settings
+end
 
-    -- Update settings from Cell shadow frames
-    local settings = self.settings
-    
-    -- Update color and size for all managed shadows
-    for frame, shadow in pairs(self.frameRegistry) do
-        if IsFrameActuallyVisible(frame) then
-            -- Determine if shadow should be shown based on frame type
-            local shouldShow = false
-            local frameType = shadow.frameType
-            
-            if frameType == "Solo" then
-                shouldShow = settings.unitFrames.Solo and settings.unitFrames.Solo.enabled
-            elseif frameType == "Party" then
-                shouldShow = settings.partyFrames
-            elseif frameType == "Raid" then
-                shouldShow = settings.raidFrames
-            elseif unitFrameTypes[frameType] then
-                shouldShow = settings.unitFrames[frameType] and settings.unitFrames[frameType].enabled
-            end
-            
-            if shouldShow then
-                local size = settings.shadowSize
-                local color = {r = 0, g = 0, b = 0, a = 1}
-                
-                -- Apply color based on frame type
-                if frameType == "Solo" and settings.unitFrames.Solo then
-                    -- Check if healthColor exists and provide defaults if not
-                    if settings.unitFrames.Solo.healthColor then
-                        color = {
-                            r = settings.unitFrames.Solo.healthColor[1],
-                            g = settings.unitFrames.Solo.healthColor[2],
-                            b = settings.unitFrames.Solo.healthColor[3],
-                            a = settings.unitFrames.Solo.healthColor[4] or 1
-                        }
-                    else
-                        -- Default color for Solo frame
-                        color = {r = 0.7, g = 0.9, b = 0.3, a = 1}
-                        -- Create the healthColor table since it's missing
-                        settings.unitFrames.Solo.healthColor = {0.7, 0.9, 0.3, 1}
-                    end
-                elseif frameType == "Party" then
-                    -- Check if partyHealthColor exists
-                    if settings.partyHealthColor and #settings.partyHealthColor >= 3 then
-                        color = {
-                            r = settings.partyHealthColor[1],
-                            g = settings.partyHealthColor[2],
-                            b = settings.partyHealthColor[3],
-                            a = settings.partyHealthColor[4] or 1
-                        }
-                    else
-                        -- Default lime green for party
-                        color = {r = 0.7, g = 0.9, b = 0.3, a = 1}
-                        settings.partyHealthColor = {0.7, 0.9, 0.3, 1}
-                    end
-                elseif frameType == "Raid" then
-                    -- Check if raidHealthColor exists
-                    if settings.raidHealthColor and #settings.raidHealthColor >= 3 then
-                        color = {
-                            r = settings.raidHealthColor[1],
-                            g = settings.raidHealthColor[2],
-                            b = settings.raidHealthColor[3],
-                            a = settings.raidHealthColor[4] or 1
-                        }
-                    else
-                        -- Default orange for raid
-                        color = {r = 0.9, g = 0.7, b = 0.3, a = 1}
-                        settings.raidHealthColor = {0.9, 0.7, 0.3, 1}
-                    end
-                elseif settings.unitFrames[frameType] then
-                    -- For unit frames (Target, Focus, Pet, TargetTarget), use their specific colors
-                    if settings.unitFrames[frameType].healthColor then
-                        color = {
-                            r = settings.unitFrames[frameType].healthColor[1],
-                            g = settings.unitFrames[frameType].healthColor[2],
-                            b = settings.unitFrames[frameType].healthColor[3],
-                            a = settings.unitFrames[frameType].healthColor[4] or 1
-                        }
-                    else
-                        -- Default colors based on frame type
-                        if frameType == "Target" then
-                            color = {r = 0.9, g = 0.7, b = 0.3, a = 1} -- Orange
-                        elseif frameType == "Focus" then
-                            color = {r = 0.7, g = 0.3, b = 0.7, a = 1} -- Purple
-                        elseif frameType == "TargetTarget" then
-                            color = {r = 0.9, g = 0.3, b = 0.5, a = 1} -- Pink
-                        elseif frameType == "Pet" then
-                            color = {r = 0.5, g = 0.3, b = 0.7, a = 1} -- Dark purple
-                        else
-                            color = {r = 0.7, g = 0.9, b = 0.3, a = 1} -- Default lime
-                        end
-                        -- Create the healthColor table since it's missing
-                        if not settings.unitFrames[frameType] then
-                            settings.unitFrames[frameType] = {}
-                        end
-                        settings.unitFrames[frameType].healthColor = {color.r, color.g, color.b, color.a}
-                    end
-                elseif unitFrameTypes[frameType] and settings.unitFrames[frameType] then
-                    -- Legacy code for health/power bar detection (shouldn't be needed anymore)
-                    local frameName = frame:GetName() or ""
-                    if frameName:match("HealthBar") then
-                        -- Check if healthColor exists
-                        if settings.unitFrames[frameType].healthColor then
-                            color = {
-                                r = settings.unitFrames[frameType].healthColor[1],
-                                g = settings.unitFrames[frameType].healthColor[2],
-                                b = settings.unitFrames[frameType].healthColor[3],
-                                a = settings.unitFrames[frameType].healthColor[4] or 1
-                            }
-                        else
-                            -- Default color based on frame type
-                            color = {r = 0.7, g = 0.9, b = 0.3, a = 1}
-                            settings.unitFrames[frameType].healthColor = {0.7, 0.9, 0.3, 1}
-                        end
-                    elseif frameName:match("PowerBar") then
-                        -- Check if powerColor exists
-                        if settings.unitFrames[frameType].powerColor then
-                            color = {
-                                r = settings.unitFrames[frameType].powerColor[1],
-                                g = settings.unitFrames[frameType].powerColor[2],
-                                b = settings.unitFrames[frameType].powerColor[3],
-                                a = settings.unitFrames[frameType].powerColor[4] or 1
-                            }
-                        else
-                            -- Default power color
-                            color = {r = 0.3, g = 0.7, b = 0.9, a = 1}
-                            settings.unitFrames[frameType].powerColor = {0.3, 0.7, 0.9, 1}
-                        end
-                    end
-                end
-                
-                shadow:Update(size, color.r, color.g, color.b, color.a)
-                shadow:Show()
-            else
-                shadow:Hide()
-            end
-        else
-            shadow:Hide()
+function SettingsManager:GetFrameTypeSettings(frameType)
+	return self.settings.frameTypes[frameType]
+end
+
+function SettingsManager:GetUnitFrameSettings(unitType)
+	return self.settings.unitFrames[unitType]
+end
+
+-- ============================================================================
+-- Shadow Object
+-- ============================================================================
+
+local ShadowObject = {}
+ShadowObject.__index = ShadowObject
+
+function ShadowObject:New(frame, frameType, shadowType)
+	local instance = setmetatable({}, self)
+	instance.frame = frame
+	instance.frameType = frameType
+	instance.shadowType = shadowType or "default"
+	instance.shadowFrame = nil
+	instance.lastUpdate = 0
+	return instance
+end
+
+function ShadowObject:Create()
+	if self.shadowFrame or not self.frame then
+		return false
+	end
+	
+	-- Create shadow frame
+	local shadowFrame = CreateFrame("Frame", nil, self.frame, "BackdropTemplate")
+	shadowFrame:SetFrameStrata(FRAME_STRATA)
+	
+	-- Set frame level safely
+	local frameLevel = 0
+	pcall(function()
+		frameLevel = math.max(0, self.frame:GetFrameLevel() - 1)
+	end)
+	shadowFrame:SetFrameLevel(frameLevel)
+	
+	self.shadowFrame = shadowFrame
+	Utils:Debug("Created shadow for " .. (self.frame:GetName() or "unnamed"))
+	return true
+end
+
+function ShadowObject:Update(size, color)
+	if not self.shadowFrame or not color then
+		return false
+	end
+	
+	local effectiveSize = size * SHADOW_SIZE_MULTIPLIER
+	local insetSize = effectiveSize * SHADOW_INSET_MULTIPLIER
+	
+	-- Position shadow
+	self.shadowFrame:ClearAllPoints()
+	self.shadowFrame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", -effectiveSize, effectiveSize)
+	self.shadowFrame:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", effectiveSize, -effectiveSize)
+	
+	-- Configure backdrop
+	self.shadowFrame:SetBackdrop({
+		edgeFile = SHADOW_TEXTURE,
+		edgeSize = effectiveSize,
+		insets = {
+			left = insetSize,
+			right = insetSize,
+			top = insetSize,
+			bottom = insetSize
+		}
+	})
+	
+	-- Apply color with minimum alpha
+	local alpha = math.max(MIN_ALPHA, color[4] or 1)
+	self.shadowFrame:SetBackdropColor(0, 0, 0, 0)
+	self.shadowFrame:SetBackdropBorderColor(color[1], color[2], color[3], alpha)
+	
+	self.lastUpdate = GetTime()
+	return true
+end
+
+function ShadowObject:Show()
+	if self.shadowFrame then
+		self.shadowFrame:Show()
+	end
+end
+
+function ShadowObject:Hide()
+	if self.shadowFrame then
+		self.shadowFrame:Hide()
+	end
+end
+
+function ShadowObject:Destroy()
+	if self.shadowFrame then
+		self.shadowFrame:Hide()
+		self.shadowFrame:SetParent(nil)
+		self.shadowFrame = nil
+	end
+end
+
+-- ============================================================================
+-- Shadow Manager
+-- ============================================================================
+
+local ShadowManager = {}
+ShadowManager.__index = ShadowManager
+
+function ShadowManager:New(settingsManager)
+	local instance = setmetatable({}, self)
+	instance.settingsManager = settingsManager
+	instance.shadowObjects = setmetatable({}, {__mode = "k"}) -- weak table
+	instance.lastScan = 0
+	instance.scanInterval = 0.5
+	return instance
+end
+
+function ShadowManager:CreateShadow(frame, frameType, shadowType)
+	if not Utils:IsFrameValid(frame) or self.shadowObjects[frame] then
+		return nil
+	end
+	
+	local shadowObj = ShadowObject:New(frame, frameType, shadowType)
+	if shadowObj:Create() then
+		self.shadowObjects[frame] = shadowObj
+		Utils:Debug("Shadow created for " .. frameType .. " frame")
+		return shadowObj
+	end
+	
+	return nil
+end
+
+function ShadowManager:UpdateShadow(frame, color)
+	local shadowObj = self.shadowObjects[frame]
+	if not shadowObj then
+		return false
+	end
+	
+	local settings = self.settingsManager:GetAll()
+	return shadowObj:Update(settings.shadowSize, color)
+end
+
+function ShadowManager:UpdateAllShadows()
+	local settings = self.settingsManager:GetAll()
+	
+	if not settings.enabled then
+		self:HideAllShadows()
+		return
+	end
+	
+	for frame, shadowObj in pairs(self.shadowObjects) do
+		if Utils:IsFrameValid(frame) then
+			local color = self:GetShadowColor(shadowObj.frameType, shadowObj.shadowType)
+			local shouldShow = self:ShouldShowShadow(shadowObj.frameType)
+			
+			if shouldShow and color then
+				shadowObj:Update(settings.shadowSize, color)
+				shadowObj:Show()
+			else
+				shadowObj:Hide()
+			end
+		else
+			shadowObj:Destroy()
+			self.shadowObjects[frame] = nil
+		end
+	end
+end
+
+function ShadowManager:GetShadowColor(frameType, shadowType)
+	local settings = self.settingsManager:GetAll()
+	
+	-- Unit frames have specific color handling
+	if settings.unitFrames[frameType] then
+		local unitSettings = settings.unitFrames[frameType]
+		if shadowType == "power" then
+			return unitSettings.powerColor
+		else
+			return unitSettings.healthColor
+		end
+	end
+	
+	-- Frame type colors
+	if settings.frameTypes[frameType] then
+		return settings.frameTypes[frameType].color
+	end
+	
+	-- Default color
+	return {0, 0, 0, 1}
+end
+
+function ShadowManager:ShouldShowShadow(frameType)
+	local settings = self.settingsManager:GetAll()
+	
+	-- Check unit frames
+	if settings.unitFrames[frameType] then
+		return settings.unitFrames[frameType].enabled
+	end
+	
+	-- Check frame types
+	if settings.frameTypes[frameType] then
+		return settings.frameTypes[frameType].enabled
+	end
+	
+	return false
+end
+
+function ShadowManager:HideAllShadows()
+	for frame, shadowObj in pairs(self.shadowObjects) do
+		shadowObj:Hide()
+	end
+end
+
+function ShadowManager:DestroyAllShadows()
+	for frame, shadowObj in pairs(self.shadowObjects) do
+		shadowObj:Destroy()
+	end
+	self.shadowObjects = setmetatable({}, {__mode = "k"})
+end
+
+function ShadowManager:GetActiveCount()
+	local count = 0
+	for _ in pairs(self.shadowObjects) do
+		count = count + 1
+	end
+	return count
+end
+
+-- ============================================================================
+-- Frame Scanner
+-- ============================================================================
+
+local FrameScanner = {}
+FrameScanner.__index = FrameScanner
+
+function FrameScanner:New(shadowManager, settingsManager)
+	local instance = setmetatable({}, self)
+	instance.shadowManager = shadowManager
+	instance.settingsManager = settingsManager
+	return instance
+end
+
+function FrameScanner:ScanAllFrames()
+	local settings = self.settingsManager:GetAll()
+	
+	if not settings.enabled then
+		return
+	end
+	
+	-- Scan unit frames
+	for unitType, patterns in pairs(FRAME_PATTERNS.unitframes) do
+		if settings.unitFrames[unitType] and settings.unitFrames[unitType].enabled then
+			self:ScanUnitFrames(unitType, patterns)
+		end
+	end
+	
+	-- Scan group frames
+	if settings.frameTypes.solo.enabled then
+		self:ScanGroupFrames("solo", FRAME_PATTERNS.solo)
+	end
+	
+	if settings.frameTypes.party.enabled then
+		self:ScanGroupFrames("party", FRAME_PATTERNS.party)
+	end
+	
+	if settings.frameTypes.raid.enabled then
+		self:ScanGroupFrames("raid", FRAME_PATTERNS.raid)
+	end
+end
+
+function FrameScanner:ScanUnitFrames(unitType, patterns)
+	for _, pattern in ipairs(patterns) do
+		local frame = _G[pattern]
+		if Utils:IsFrameValid(frame) then
+			self.shadowManager:CreateShadow(frame, unitType, "health")
+			
+			-- Look for health/power bars
+			local healthBar = self:FindChildFrame(frame, "HealthBar")
+			if healthBar then
+				self.shadowManager:CreateShadow(healthBar, unitType, "health")
+			end
+			
+			-- Only create power bar shadow if power bar actually exists and is visible
+			local powerBar = self:FindChildFrame(frame, "PowerBar")
+			if powerBar and Utils:IsFrameValid(powerBar) then
+				self.shadowManager:CreateShadow(powerBar, unitType, "power")
+			end
         end
     end
 end
 
--- Remove shadows that are no longer needed (with more lenient conditions)
-function Shadow:CleanupShadows()
-    for frame, shadow in pairs(self.frameRegistry) do
-        -- Only remove shadows for frames that have been gone for a while
-        -- This helps with frames that briefly disappear during updates
-        if not frame.lastSeen then
-            frame.lastSeen = GetTime()
-        end
-        
-        local currentTime = GetTime()
-        local frameGone = not frame:IsVisible() or not frame:GetParent()
-        
-        if frameGone then
-            -- If frame has been gone for more than 2 seconds, remove the shadow
-            if currentTime - frame.lastSeen > 2 then
-                ns.Debug("Removing shadow for frame that's been gone for >2 seconds")
-                shadow:Remove()
-            end
-        else
-            -- Update last seen time when frame is visible
-            frame.lastSeen = currentTime
-        end
-    end
+function FrameScanner:ScanGroupFrames(frameType, patterns)
+	for _, pattern in ipairs(patterns) do
+		if pattern:find("%%d") then
+			-- Pattern with numbers - scan ranges
+			if frameType == "party" then
+				for i = 1, 5 do
+					local frameName = pattern:gsub("%%d", i)
+					local frame = _G[frameName]
+					if Utils:IsFrameValid(frame) then
+						self.shadowManager:CreateShadow(frame, frameType)
+					end
+				end
+			elseif frameType == "raid" then
+				for i = 1, 8 do
+					for j = 1, 5 do
+						local frameName = pattern:gsub("%%d", i, 1):gsub("%%d", j, 1)
+						local frame = _G[frameName]
+						if Utils:IsFrameValid(frame) then
+							self.shadowManager:CreateShadow(frame, frameType)
+						end
+					end
+				end
+			end
+		else
+			-- Direct frame name
+			local frame = _G[pattern]
+			if Utils:IsFrameValid(frame) then
+				self.shadowManager:CreateShadow(frame, frameType)
+			end
+		end
+	end
 end
 
--- Initialize default settings
-local function InitSettings()
-    -- Create default shadow settings if they don't exist
-    if not CellAdditionsDB.shadowSettings then
-        CellAdditionsDB.shadowSettings = {
-            enabled = true,
-            shadowSize = 5,
-            
-            -- Cell group frames
-            partyFrames = true,
-            partyHealthColor = {0.7, 0.9, 0.3, 1},
-            partyPowerColor = {0.9, 0.7, 0.3, 1},
-            raidFrames = false,
-            raidHealthColor = {0.9, 0.7, 0.3, 1},
-            raidPowerColor = {0.9, 0.5, 0.3, 1},
-            
-            -- Unit frames with their health and power colors
-            unitFrames = {
-                Solo = {
-                    enabled = true,
-                    healthColor = {0.7, 0.9, 0.3, 1},
-                    powerColor = {0.9, 0.7, 0.3, 1}
-                },
-                Player = {
-                    enabled = true,
-                    healthColor = {0.7, 0.9, 0.3, 1},
-                    powerColor = {0.9, 0.7, 0.3, 1}
-                },
-                Target = {
-                    enabled = true, -- Set to TRUE by default
-                    healthColor = {0.9, 0.7, 0.3, 1},
-                    powerColor = {0.9, 0.5, 0.3, 1}
-                },
-                TargetTarget = {
-                    enabled = false,
-                    healthColor = {0.9, 0.3, 0.5, 1},
-                    powerColor = {0.9, 0.3, 0.5, 1}
-                },
-                Focus = {
-                    enabled = true,
-                    healthColor = {0.7, 0.3, 0.7, 1},
-                    powerColor = {0.5, 0.3, 0.7, 1}
-                },
-                Pet = {
-                    enabled = false,
-                    healthColor = {0.5, 0.3, 0.7, 1},
-                    powerColor = {0.5, 0.3, 0.7, 1}
-                }
-            }
-        }
-    else
-        -- Ensure all required tables exist to prevent nil errors
-        local settings = CellAdditionsDB.shadowSettings
-        
-        -- Initialize basic settings
-        settings.enabled = settings.enabled ~= nil and settings.enabled or true
-        settings.shadowSize = settings.shadowSize or 5
-        
-        -- Initialize party/raid settings
-        settings.partyFrames = settings.partyFrames ~= nil and settings.partyFrames or true
-        settings.partyHealthColor = settings.partyHealthColor or {0.7, 0.9, 0.3, 1}
-        settings.partyPowerColor = settings.partyPowerColor or {0.9, 0.7, 0.3, 1}
-        settings.raidFrames = settings.raidFrames ~= nil and settings.raidFrames or false
-        settings.raidHealthColor = settings.raidHealthColor or {0.9, 0.7, 0.3, 1}
-        settings.raidPowerColor = settings.raidPowerColor or {0.9, 0.5, 0.3, 1}
-        
-        -- Initialize unit frames
-        settings.unitFrames = settings.unitFrames or {}
-        
-        -- Default unit frame settings
-        local defaultUnitFrames = {
-            Solo = {
-                enabled = true,
-                healthColor = {0.7, 0.9, 0.3, 1},
-                powerColor = {0.9, 0.7, 0.3, 1}
-            },
-            Player = {
-                enabled = true,
-                healthColor = {0.7, 0.9, 0.3, 1},
-                powerColor = {0.9, 0.7, 0.3, 1}
-            },
-            Target = {
-                enabled = false,
-                healthColor = {0.9, 0.7, 0.3, 1},
-                powerColor = {0.9, 0.5, 0.3, 1}
-            },
-            TargetTarget = {
-                enabled = false,
-                healthColor = {0.9, 0.3, 0.5, 1},
-                powerColor = {0.9, 0.3, 0.5, 1}
-            },
-            Focus = {
-                enabled = true,
-                healthColor = {0.7, 0.3, 0.7, 1},
-                powerColor = {0.5, 0.3, 0.7, 1}
-            },
-            Pet = {
-                enabled = false,
-                healthColor = {0.5, 0.3, 0.7, 1},
-                powerColor = {0.5, 0.3, 0.7, 1}
-            }
-        }
-        
-        -- Ensure all unit frame settings exist
-        for unitType, defaults in pairs(defaultUnitFrames) do
-            if not settings.unitFrames[unitType] then
-                settings.unitFrames[unitType] = defaults
-            else
-                -- Ensure sub-fields exist
-                local unitSettings = settings.unitFrames[unitType]
-                unitSettings.enabled = unitSettings.enabled ~= nil and unitSettings.enabled or defaults.enabled
-                unitSettings.healthColor = unitSettings.healthColor or defaults.healthColor
-                unitSettings.powerColor = unitSettings.powerColor or defaults.powerColor
-            end
-        end
-    end
-    
-    return CellAdditionsDB.shadowSettings
+function FrameScanner:FindChildFrame(parent, namePattern)
+	if not parent then return nil end
+	
+	for _, child in pairs({parent:GetChildren()}) do
+		local name = child:GetName()
+		if name and name:find(namePattern) then
+			return child
+		end
+	end
+	
+	return nil
 end
 
--- Apply shadow settings to frames
-local function ApplyShadows()
-    local settings = CellAdditionsDB.shadowSettings
-    
-    if not settings or not settings.enabled then
-        ns.Debug("Shadows disabled, not applying")
-        return
-    end
-    
-    ns.Debug("Applying shadow settings")
-    
-    -- Scan for frames first
-    Shadow:ScanForFrames()
-    
-    -- Update all shadows
-    Shadow:UpdateAllShadows()
-    
-    -- Clean up any unused shadows
-    Shadow:CleanupShadows()
+-- ============================================================================
+-- UI Manager
+-- ============================================================================
+
+local UIManager = {}
+UIManager.__index = UIManager
+
+function UIManager:New(settingsManager, shadowManager)
+	local instance = setmetatable({}, self)
+	instance.settingsManager = settingsManager
+	instance.shadowManager = shadowManager
+	return instance
 end
 
--- Apply shadow to Cell unit frames (Target, Focus, Pet, etc)
-function Shadow:ApplyShadowToCellUnitFrame(unitType)
-    -- Try multiple frame name patterns for the unit
-    local frameNames = {
-        "CUF_" .. unitType,
-        "Cell" .. unitType .. "Frame",
-        "CellUnitFrame" .. unitType,
-        "CellUnitButton_" .. unitType:lower(),
-        unitType .. "Frame"
-    }
-    
-    local frame = nil
-    for _, frameName in ipairs(frameNames) do
-        frame = _G[frameName]
-        if frame then
-            ns.Debug("Found " .. unitType .. " frame: " .. frameName)
-            break
-        end
-    end
-    
-    if not frame then return false end
-    
-    -- Get user settings for the shadow
-    local settings = self.settings
-    if not settings or not settings.enabled then return false end
-    
-    -- Get unit-specific settings
-    local unitSettings = settings.unitFrames[unitType]
-    if not unitSettings or not unitSettings.enabled then return false end
-    
-    -- Get shadow size and color
-    local size = settings.shadowSize or 5   
-    local color = unitSettings.healthColor or {0.9, 0.7, 0.3, 1}
-    
-    -- Remove existing shadow if present
-    if frame.shadow and self.frameRegistry[frame] then
-        self.frameRegistry[frame]:Remove()
-    end
-    
-    -- Use CreateShadow function to maintain consistency
-    local shadow = CreateShadow(frame, unitType)
-    if shadow then
-        -- Update with proper color
-        shadow:Update(size, color[1], color[2], color[3], color[4] or 1)
-        ns.Debug("Successfully applied shadow to " .. unitType)
-        return true
-    end
-    
-    return false
+function UIManager:CreateSettings(parent)
+	local Cell = ns.Cell or _G.Cell
+	if not Cell then
+		Utils:Debug("Cell not available for settings UI")
+		return
+	end
+	
+	local container = parent
+	local settings = self.settingsManager:GetAll()
+	
+	-- Create sections
+	local lastElement = self:CreateGeneralSettings(container, settings)
+	lastElement = self:CreateFrameTypeSettings(container, settings, lastElement)
+	lastElement = self:CreateUnitFrameSettings(container, settings, lastElement)
+	
+	-- Calculate and set proper content height
+	local totalHeight = 400 -- Base height for all the content
+	container:SetHeight(totalHeight)
+	
+	-- Update scroll frame if it exists
+	if container.GetParent and container:GetParent().scrollFrame then
+		local scrollFrame = container:GetParent().scrollFrame
+		scrollFrame:UpdateScrollChildRect()
+		
+		-- Hide scrollbar if content fits
+		local contentHeight = container:GetHeight()
+		local visibleHeight = scrollFrame:GetHeight()
+		if contentHeight <= visibleHeight then
+			if scrollFrame.scrollBar then
+				scrollFrame.scrollBar:Hide()
+			end
+		else
+			if scrollFrame.scrollBar then
+				scrollFrame.scrollBar:Show()
+			end
+		end
+	end
+	
+	return container
 end
 
--- Direct method for CUF_Target since it's having issues with the normal way
-function Shadow:ApplyShadowToCUFTarget()
-    return self:ApplyShadowToCellUnitFrame("Target")
+function UIManager:CreateGeneralSettings(parent, settings)
+	local Cell = ns.Cell or _G.Cell
+	
+	-- Main enable checkbox
+	local enableCB = Cell.CreateCheckButton(parent, "Enable Shadow Effects", function(checked)
+		self.settingsManager:Set("enabled", checked)
+		self:TriggerShadowUpdate()
+	end)
+	enableCB:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -10)
+	enableCB:SetChecked(settings.enabled)
+	
+	-- Shadow size slider
+	local sizeLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	sizeLabel:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -20)
+	sizeLabel:SetText("Shadow Size")
+	
+	local sizeValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	sizeValue:SetPoint("LEFT", sizeLabel, "RIGHT", 50, 0)
+	sizeValue:SetText(tostring(settings.shadowSize))
+	
+	local sizeSlider = Cell.CreateSlider("", parent, 1, 15, 180, 1)
+	sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -5)
+	sizeSlider:SetValue(settings.shadowSize)
+	sizeSlider.afterValueChangedFn = function(value)
+		local newValue = math.floor(value)
+		self.settingsManager:Set("shadowSize", newValue)
+		sizeValue:SetText(tostring(newValue))
+		self:TriggerShadowUpdate()
+	end
+	
+	return sizeSlider
 end
 
--- Direct method for CUF_Focus
-function Shadow:ApplyShadowToCUFFocus()
-    return self:ApplyShadowToCellUnitFrame("Focus")
+function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
+	local Cell = ns.Cell or _G.Cell
+	
+	-- Section header
+	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
+	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
+	header:SetText("Cell")
+	
+	local lastElement = header
+	
+	local frameTypes = {
+		{key = "solo", name = "Solo Frame"},
+		{key = "party", name = "Party Frames"},
+		{key = "raid", name = "Raid Frames"}
+	}
+	
+	for _, frameType in ipairs(frameTypes) do
+		local typeSettings = settings.frameTypes[frameType.key]
+		
+		-- Checkbox
+		local cb = Cell.CreateCheckButton(parent, frameType.name, function(checked)
+			typeSettings.enabled = checked
+			self:TriggerShadowUpdate()
+		end)
+		cb:SetPoint("TOPLEFT", lastElement, "BOTTOMLEFT", 0, -10)
+		cb:SetChecked(typeSettings.enabled)
+		
+		-- Color picker - positioned to fit within bounds
+		local colorPicker = Cell.CreateColorPicker(parent, "", true, function(r, g, b, a)
+			typeSettings.color = {r, g, b, a}
+			self:TriggerShadowUpdate()
+		end)
+		colorPicker:SetPoint("TOPLEFT", cb, "TOPLEFT", 225, 1)
+		local color = typeSettings.color
+		colorPicker:SetColor(color[1], color[2], color[3], color[4])
+		
+		lastElement = cb
+	end
+	
+	return lastElement
 end
 
--- Direct method for CUF_TargetTarget
-function Shadow:ApplyShadowToCUFTargetTarget()
-    return self:ApplyShadowToCellUnitFrame("TargetTarget")
+function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
+	local Cell = ns.Cell or _G.Cell
+	
+	-- Section header
+	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
+	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -25)
+	header:SetText("Cell - Unit Frames")
+	
+	-- Column headers - positioned to align with color pickers
+	local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	hbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 215, 3)
+	hbLabel:SetText("HB")
+	hbLabel:SetJustifyH("CENTER")
+	
+	local pbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+	pbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 242, 3)
+	pbLabel:SetText("PB")
+	pbLabel:SetJustifyH("CENTER")
+	
+	local lastElement = header
+	
+	local unitFrames = {
+		{key = "Player", name = "Player Frame"},
+		{key = "Target", name = "Target Frame"},
+		{key = "TargetTarget", name = "Target's Target Frame"},
+		{key = "Focus", name = "Focus Frame"},
+		{key = "Pet", name = "Pet Frame"}
+	}
+	
+	for _, unitFrame in ipairs(unitFrames) do
+		local unitSettings = settings.unitFrames[unitFrame.key]
+		
+		-- Checkbox
+		local cb = Cell.CreateCheckButton(parent, unitFrame.name, function(checked)
+			unitSettings.enabled = checked
+			self:TriggerShadowUpdate()
+		end)
+		cb:SetPoint("TOPLEFT", lastElement, "BOTTOMLEFT", 0, -10)
+		cb:SetChecked(unitSettings.enabled)
+		
+		-- Health color picker - centered under HB header
+		local healthPicker = Cell.CreateColorPicker(parent, "", true, function(r, g, b, a)
+			unitSettings.healthColor = {r, g, b, a}
+			self:TriggerShadowUpdate()
+		end)
+		healthPicker:SetPoint("TOPLEFT", cb, "TOPLEFT", 220, 1)
+		local healthColor = unitSettings.healthColor
+		healthPicker:SetColor(healthColor[1], healthColor[2], healthColor[3], healthColor[4])
+		
+		-- Power color picker - always show but only applies if power bar exists
+		local powerPicker = Cell.CreateColorPicker(parent, "", true, function(r, g, b, a)
+			unitSettings.powerColor = {r, g, b, a}
+			self:TriggerShadowUpdate()
+		end)
+		powerPicker:SetPoint("TOPLEFT", cb, "TOPLEFT", 245, 1)
+		local powerColor = unitSettings.powerColor
+		powerPicker:SetColor(powerColor[1], powerColor[2], powerColor[3], powerColor[4])
+		
+		lastElement = cb
+	end
+	
+	return lastElement
 end
 
--- Direct method for CUF_Pet
-function Shadow:ApplyShadowToCUFPet()
-    return self:ApplyShadowToCellUnitFrame("Pet")
+function UIManager:TriggerShadowUpdate()
+	C_Timer.After(0.1, function()
+		if ns.Shadow and ns.Shadow.shadowManager then
+			ns.Shadow.shadowManager:UpdateAllShadows()
+		end
+	end)
 end
 
--- No special target function needed anymore
+-- ============================================================================
+-- Main Shadow Class
+-- ============================================================================
 
--- Module initialization
+function Shadow:New()
+	local instance = setmetatable({}, self)
+	
+	-- Initialize managers
+	instance.settingsManager = SettingsManager:New()
+	instance.shadowManager = ShadowManager:New(instance.settingsManager)
+	instance.frameScanner = FrameScanner:New(instance.shadowManager, instance.settingsManager)
+	instance.uiManager = UIManager:New(instance.settingsManager, instance.shadowManager)
+	
+	instance.initialized = false
+	instance.eventFrame = nil
+	return instance
+end
+
 function Shadow:Initialize()
-    ns.Debug("Shadow module initializing")
-    
-    -- Initialize settings
-    InitSettings()
-    
-    -- Create an update frame
-    local updateFrame = CreateFrame("Frame")
-    self.updateFrame = updateFrame
-    
-    -- This frame will handle periodic updates for shadows
-    updateFrame:SetScript("OnUpdate", function(self, elapsed)
-        Shadow.lastUpdate = Shadow.lastUpdate + elapsed
-        if Shadow.lastUpdate >= Shadow.updateThrottle then
-            Shadow.lastUpdate = 0
-            
-            if CellAdditionsDB.shadowSettings.enabled then
-                -- Scan for new frames
-                Shadow:ScanForFrames()
-                
-                -- Update existing shadows
-                Shadow:UpdateAllShadows()
-                
-                -- Clean up unused shadows
-                Shadow:CleanupShadows()
-            end
-        end
-    end)
-    
-    -- Register for Cell events
-    local Cell = ns.Cell or _G.Cell
-    if Cell and Cell.RegisterCallback then
-        Cell:RegisterCallback("Cell_Init", function()
-            C_Timer.After(0.5, function()
-                if AreShadowsEnabled() then
-                    Shadow:ScanForFrames()
-                    Shadow:UpdateAllShadows()
-                    -- Force target shadows specifically
-                    if CellAdditionsDB.shadowSettings.unitFrames.Target and 
-                       CellAdditionsDB.shadowSettings.unitFrames.Target.enabled then
-                        Shadow:ForceTargetFrameShadow()
-                    end
-                end
-            end)
-        end)
-        
-        Cell:RegisterCallback("Cell_UnitButtonCreated", function()
-            C_Timer.After(0.1, function()
-                if AreShadowsEnabled() then
-                    Shadow:ScanForFrames()
-                    Shadow:UpdateAllShadows()
-                end
-            end)
-        end)
-        
-        -- These events handle updates to various frame types
-        local updateEvents = {
-            "Cell_RaidFrame_Update",
-            "Cell_PartyFrame_Update",
-            "Cell_SoloFrame_Update",
-            "Cell_Group_Moved",
-            "Cell_Group_Updated",
-            "Cell_Layout_Updated"
-        }
-        
-        for _, event in ipairs(updateEvents) do
-            Cell:RegisterCallback(event, function()
-                if AreShadowsEnabled() then
-                    C_Timer.After(0.1, function()
-                        Shadow:ScanForFrames()
-                        Shadow:UpdateAllShadows()
-                    end)
-                end
-            end)
-        end
-    end
-    
-    -- Also register for WoW events
-    local eventFrame = CreateFrame("Frame")
-    self.eventFrame = eventFrame
-    
-    -- Add specific handler for Target frames
-    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    
-    -- This additional event handling is dedicated to Target frames
-    -- which often have issues with shadows
-    eventFrame:HookScript("OnEvent", function(_, event, ...)
-        if event == "PLAYER_TARGET_CHANGED" then
-            -- Wait a moment for the target frame to fully update
-            C_Timer.After(0.1, function()
-                -- Check if target shadows are enabled
-                if CellAdditionsDB and 
-                   CellAdditionsDB.shadowSettings and 
-                   CellAdditionsDB.shadowSettings.enabled and
-                   CellAdditionsDB.shadowSettings.unitFrames and
-                   CellAdditionsDB.shadowSettings.unitFrames.Target and
-                   CellAdditionsDB.shadowSettings.unitFrames.Target.enabled then
-                    
-                    ns.Debug("Target changed, checking for target frames...")
-                    
-                    -- Direct frame check for Blizzard target frame
-                    local targetFrame = _G["TargetFrame"]
-                    if targetFrame then
-                        ns.Debug("Found Blizzard TargetFrame")
-                        if not Shadow.frameRegistry[targetFrame] then
-                            CreateShadow(targetFrame, "Target")
-                        end
-                    end
-                    
-                    -- Check for target health bar
-                    local healthBar = _G["TargetFrameHealthBar"]
-                    if healthBar then
-                        ns.Debug("Found TargetFrameHealthBar")
-                        if not Shadow.frameRegistry[healthBar] then
-                            CreateShadow(healthBar, "Target")
-                        end
-                    end
-                    
-                    -- Check for Cell target frame
-                    local cellTarget = _G["CellUnitFrameTarget"]
-                    if cellTarget then
-                        ns.Debug("Found CellUnitFrameTarget")
-                        if not Shadow.frameRegistry[cellTarget] then
-                            CreateShadow(cellTarget, "Target")
-                        end
-                    end
-                    
-                    -- Apply all shadows to ensure they're updated
-                    ApplyShadows()
-                end
-            end)
-        end
-    end)
-    
-    eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    eventFrame:RegisterEvent("RAID_ROSTER_UPDATE")
-    eventFrame:RegisterEvent("GROUP_JOINED")
-    eventFrame:RegisterEvent("GROUP_LEFT")
-    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:RegisterEvent("ADDON_LOADED")
-    
-    eventFrame:SetScript("OnEvent", function(_, event, ...)
-        if event == "ADDON_LOADED" and ... == "Cell" then
-            C_Timer.After(1, function()
-                if CellAdditionsDB.shadowSettings.enabled then
-                    Shadow:ScanForFrames()
-                    Shadow:UpdateAllShadows()
-                end
-            end)
-        elseif event == "PLAYER_ENTERING_WORLD" then
-            C_Timer.After(1, function()
-                if CellAdditionsDB.shadowSettings.enabled then
-                    Shadow:ScanForFrames()
-                    Shadow:UpdateAllShadows()
-                end
-            end)
-        elseif CellAdditionsDB.shadowSettings.enabled then
-            C_Timer.After(0.1, function()
-                Shadow:ScanForFrames()
-                Shadow:UpdateAllShadows()
-            end)
-        end
-    end)
-    
-    -- Add specialized target frame event handling
-    local targetFrame = CreateFrame("Frame")
-    targetFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    targetFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    
-    targetFrame:SetScript("OnEvent", function(_, event)
-        -- Wait a moment for target frame to be fully updated
-        C_Timer.After(0.2, function()
-            -- Always try the direct approach first for CUF_Target
-            Shadow:ApplyShadowToCUFTarget()
-            
-            -- Then apply regular shadows
-            if CellAdditionsDB.shadowSettings and 
-               CellAdditionsDB.shadowSettings.enabled then
-                
-                ns.Debug("Target changed, applying shadows")
-                -- Just scan and update like normal
-                Shadow:ScanForFrames()
-                Shadow:UpdateAllShadows()
-            end
-        end)
-    end)
-    
-    -- Add specialized focus frame event handling
-    local focusFrame = CreateFrame("Frame")
-    focusFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
-    focusFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    
-    focusFrame:SetScript("OnEvent", function(self, event)
-        -- Wait a moment for focus frame to be fully updated
-        C_Timer.After(0.2, function()
-            -- Always try the direct approach first for CUF_Focus
-            Shadow:ApplyShadowToCUFFocus()
-            
-            -- Then apply regular shadows if needed
-            if CellAdditionsDB.shadowSettings and 
-               CellAdditionsDB.shadowSettings.enabled then
-                
-                ns.Debug("Focus changed, applying shadows")
-                -- Just scan and update like normal
-                Shadow:ScanForFrames()
-                Shadow:UpdateAllShadows()
-            end
-        end)
-    end)
-    
-    -- Add specialized pet frame event handling
-    local petFrame = CreateFrame("Frame")
-    petFrame:RegisterEvent("UNIT_PET")
-    petFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    
-    petFrame:SetScript("OnEvent", function(self, event)
-        -- Wait a moment for pet frame to be fully updated
-        C_Timer.After(0.2, function()
-            Shadow:ApplyShadowToCUFPet()
-            
-            if CellAdditionsDB.shadowSettings and 
-               CellAdditionsDB.shadowSettings.enabled then
-                ns.Debug("Pet changed, applying shadows")
-                Shadow:ScanForFrames()
-                Shadow:UpdateAllShadows()
-            end
-        end)
-    end)
-    
-    -- Just do a single initial apply after a delay
-    C_Timer.After(1, function()
-        -- Apply all shadows once at startup
-        if CellAdditionsDB.shadowSettings and 
-           CellAdditionsDB.shadowSettings.enabled then
-            
-            ns.Debug("Initial apply of all shadows")
-            Shadow:ScanForFrames()
-            Shadow:UpdateAllShadows()
-        end
-    end)
-    
-    ns.Debug("Shadow module initialized")
+	if self.initialized then
+		return
+	end
+	
+	-- Initialize settings
+	self.settingsManager:Initialize()
+	
+	-- Check if module is enabled
+	if not self.settingsManager:Get("enabled") then
+		Utils:Debug("Shadow module disabled in settings")
+		return
+	end
+	
+	-- Register events
+	self:RegisterEvents()
+	
+	-- Register Cell callbacks
+	self:RegisterCallbacks()
+	
+	self.initialized = true
+	Utils:Debug("Shadow module initialized successfully")
+	
+	-- Initial scan
+	C_Timer.After(1, function()
+		self:Update()
+	end)
 end
 
--- Create settings UI
-function Shadow:CreateSettings(parent)
-    if not parent then
-        ns.Debug("ERROR: No parent frame provided for Shadow settings")
-        return
-    end
-
-    ns.Debug("Creating Shadow settings panel")
-    
-    -- Get Cell reference
-    local Cell = ns.Cell or _G.Cell
-    if not Cell then
-        ns.Debug("ERROR: Cell not available for Shadow settings")
-        return
-    end
-    
-    -- Initialize settings if needed
-    local settings = InitSettings()
-    
-    -- Create main container with proper padding
-    local container = CreateFrame("Frame", nil, parent)
-    container:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -5)  -- Start closer to parent top
-    container:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
-    container:SetFrameLevel(parent:GetFrameLevel() + 1)
-    
-    -- Get accent color
-    local accentColor = Cell.GetAccentColorTable()
-    
-    -- Enable Shadow checkbox (moved down from the separator line)
-    local enableShadowCB = Cell.CreateCheckButton(container, "Enable Shadow", function(checked)
-        settings.enabled = checked
-        ns.Debug("Shadow enabled: " .. tostring(checked))
-        ApplyShadows()
-    end)
-    enableShadowCB:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -20)  -- Move down significantly
-    enableShadowCB:SetChecked(settings.enabled)
-    
-    -- Shadow Settings header with proper spacing
-    local shadowSettingsText = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-    shadowSettingsText:SetPoint("TOPLEFT", enableShadowCB, "BOTTOMLEFT", 0, -15)
-    shadowSettingsText:SetText("Shadow Settings")
-    
-    -- Shadow size text with consistent spacing
-    local shadowSizeText = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    shadowSizeText:SetPoint("TOPLEFT", shadowSettingsText, "BOTTOMLEFT", 10, -10)
-    shadowSizeText:SetText("Shadow Size")
-    
-    -- Shadow size slider with proper spacing
-    local shadowSizeSlider = Cell.CreateSlider("", container, 1, 15, 120, 1)
-    shadowSizeSlider:SetPoint("TOPLEFT", shadowSizeText, "BOTTOMLEFT", 0, -5)
-    shadowSizeSlider:SetLabel("")
-    shadowSizeSlider:SetValue(settings.shadowSize)
-    shadowSizeSlider.afterValueChangedFn = function(value)
-        settings.shadowSize = math.floor(value)
-        ns.Debug("Shadow size changed to: " .. settings.shadowSize)
-        ApplyShadows()
-    end
-    
-    -- Cell section with consistent separator spacing
-    local cellSeparator = Cell.CreateSeparator("Cell", container)
-    cellSeparator:SetPoint("TOPLEFT", shadowSizeSlider, "BOTTOMLEFT", -10, -20)
-    
-    -- Solo Frame checkbox with proper spacing
-    local soloFrameCB = Cell.CreateCheckButton(container, "Solo Frame", function(checked)
-        if not settings.unitFrames then settings.unitFrames = {} end
-        if not settings.unitFrames.Solo then settings.unitFrames.Solo = {} end
-        settings.unitFrames.Solo.enabled = checked
-        ns.Debug("Solo frame shadows: " .. tostring(checked))
-        ApplyShadows()
-    end)
-    soloFrameCB:SetPoint("TOPLEFT", cellSeparator, "BOTTOMLEFT", 0, -10)
-    soloFrameCB:SetChecked(settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.enabled)
-    
-    -- Solo Frame color swatch aligned with checkbox
-    local soloColorSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
-        if not settings.unitFrames then settings.unitFrames = {} end
-        if not settings.unitFrames.Solo then 
-            settings.unitFrames.Solo = {
-                healthColor = {r, g, b, a},
-                powerColor = {r, g, b, a}
-            }
-        else
-            settings.unitFrames.Solo.healthColor = {r, g, b, a}
-        end
-        ns.Debug("Solo frame color changed")
-        ApplyShadows()
-    end)
-    soloColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
-    soloColorSwatch:SetPoint("TOP", soloFrameCB, "TOP", 0, 0)
-    -- Set initial color
-    if settings.unitFrames and settings.unitFrames.Solo and settings.unitFrames.Solo.healthColor then
-        local c = settings.unitFrames.Solo.healthColor
-        soloColorSwatch:SetColor(c[1], c[2], c[3], c[4])
-    else
-        soloColorSwatch:SetColor(0.7, 0.9, 0.3, 1)
-    end
-    
-    -- Party Frames checkbox
-    local partyFramesCB = Cell.CreateCheckButton(container, "Party Frames", function(checked)
-        settings.partyFrames = checked
-        ns.Debug("Party frames shadows: " .. tostring(checked))
-        ApplyShadows()
-    end)
-    partyFramesCB:SetPoint("TOPLEFT", soloFrameCB, "BOTTOMLEFT", 0, -8)
-    partyFramesCB:SetChecked(settings.partyFrames)
-    
-    -- Party frames color swatch
-    local partyColorSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
-        -- Store the party frame color changes here
-        settings.partyHealthColor = {r, g, b, a}
-        ns.Debug("Party frame color changed")
-        ApplyShadows()
-    end)
-    partyColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
-    partyColorSwatch:SetPoint("TOP", partyFramesCB, "TOP", 0, 0)
-    -- Set initial color
-    if settings.partyHealthColor then
-        local c = settings.partyHealthColor
-        partyColorSwatch:SetColor(c[1], c[2], c[3], c[4])
-    else
-        partyColorSwatch:SetColor(0.7, 0.9, 0.3, 1) -- Lime green
-    end
-    
-    -- Raid Frames checkbox
-    local raidFramesCB = Cell.CreateCheckButton(container, "Raid Frames", function(checked)
-        settings.raidFrames = checked
-        ns.Debug("Raid frames shadows: " .. tostring(checked))
-        ApplyShadows()
-    end)
-    raidFramesCB:SetPoint("TOPLEFT", partyFramesCB, "BOTTOMLEFT", 0, -8)
-    raidFramesCB:SetChecked(settings.raidFrames)
-    
-    -- Raid frames color swatch
-    local raidColorSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
-        -- Store the raid frame color changes here
-        settings.raidHealthColor = {r, g, b, a}
-        ns.Debug("Raid frame color changed")
-        ApplyShadows()
-    end)
-    raidColorSwatch:SetPoint("RIGHT", container, "RIGHT", -10, 0)
-    raidColorSwatch:SetPoint("TOP", raidFramesCB, "TOP", 0, 0)
-    -- Set initial color
-    if settings.raidHealthColor then
-        local c = settings.raidHealthColor
-        raidColorSwatch:SetColor(c[1], c[2], c[3], c[4])
-    else
-        raidColorSwatch:SetColor(0.9, 0.7, 0.3, 1) -- Orange
-    end
-    
-    -- Cell - Unit Frames section with separator
-    local unitFramesSeparator = Cell.CreateSeparator("Cell - Unit Frames", container)
-    unitFramesSeparator:SetPoint("TOPLEFT", raidFramesCB, "BOTTOMLEFT", -10, -15)
-    
-    -- Create column headers for HB and PB - centered over color pickers
-    local hbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    hbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -5)
-    hbLabel:SetPoint("RIGHT", container, "RIGHT", -32, 0)  -- Center over HB swatch (-35 - 10)
-    hbLabel:SetText("HB")
-    hbLabel:SetJustifyH("CENTER")
-    
-    local pbLabel = container:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    pbLabel:SetPoint("TOP", unitFramesSeparator, "BOTTOM", 0, -5)
-    pbLabel:SetPoint("RIGHT", container, "RIGHT", -4, 0)  -- Center over PB swatch (-5 - 10)
-    pbLabel:SetText("PB")
-    pbLabel:SetJustifyH("CENTER")
-    
-    -- Unit frames definitions
-    local unitFrames = {
-        { name = "Player", key = "Player" },
-        { name = "Target", key = "Target" },
-        { name = "Target's Target", key = "TargetTarget" },
-        { name = "Focus", key = "Focus" },
-        { name = "Pet", key = "Pet" }
-    }
-    
-    -- Create unit frame checkboxes and color swatches
-    local prevElement
-    
-    for i, unit in ipairs(unitFrames) do
-        local unitSettings = settings.unitFrames[unit.key]
-        
-        -- Unit frame checkbox
-        local unitCB = Cell.CreateCheckButton(container, unit.name, function(checked)
-            unitSettings.enabled = checked
-            ns.Debug(unit.name .. " frame shadows: " .. tostring(checked))
-            
-            -- For target frame, add special handling to force-find frames
-            if unit.key == "Target" and checked then
-                ns.Debug("Performing enhanced target frame detection...")
-                
-                -- Check all possible frame names
-                local targetFrameNames = {
-                    "TargetFrame",
-                    "CellUnitFrameTarget", 
-                    "CellTargetFrame",
-                    "TargetFrameHealthBar",
-                    "CellUnitButton_target"
-                }
-                
-                for _, name in ipairs(targetFrameNames) do
-                    local frame = _G[name]
-                    if frame then
-                        ns.Debug("Found target frame: " .. name)
-                        if not Shadow.frameRegistry[frame] then
-                            CreateShadow(frame, "Target")
-                        end
-                    end
-                end
-            end
-            
-            ApplyShadows()
-        end)
-        
-        if i == 1 then
-            -- First unit frame positioned below the column headers
-            unitCB:SetPoint("TOPLEFT", unitFramesSeparator, "BOTTOMLEFT", 0, -20)
-        else
-            -- Consistent spacing between unit frame checkboxes
-            unitCB:SetPoint("TOPLEFT", prevElement, "BOTTOMLEFT", 0, -5)
-        end
-        unitCB:SetChecked(unitSettings.enabled)
-        
-        -- Health bar color swatch (HB)
-        local healthColor = unitSettings.healthColor
-        local healthSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
-            -- Store the unit frame health bar color changes here
-            unitSettings.healthColor[1] = r
-            unitSettings.healthColor[2] = g
-            unitSettings.healthColor[3] = b
-            unitSettings.healthColor[4] = a
-            ns.Debug(unit.key .. " health bar color changed")
-            
-            -- Special handling for Target frame colors
-            if unit.key == "Target" then
-                Shadow:ApplyShadowToCUFTarget()
-            end
-            
-            -- Update all shadows
-            ApplyShadows()
-        end)
-        healthSwatch:SetPoint("TOP", unitCB, "TOP", 0, 0)
-        healthSwatch:SetPoint("RIGHT", container, "RIGHT", -35, 0)  -- Fixed position for HB column
-        healthSwatch:SetColor(healthColor[1], healthColor[2], healthColor[3], healthColor[4])
-        
-        -- Power bar color swatch (PB)
-        local powerColor = unitSettings.powerColor
-        local powerSwatch = Cell.CreateColorPicker(container, "", true, function(r, g, b, a)
-            -- Store the unit frame power bar color changes here
-            unitSettings.powerColor[1] = r
-            unitSettings.powerColor[2] = g
-            unitSettings.powerColor[3] = b
-            unitSettings.powerColor[4] = a
-            ns.Debug(unit.key .. " power bar color changed")
-            ApplyShadows()
-        end)
-        powerSwatch:SetPoint("TOP", unitCB, "TOP", 0, 0)
-        powerSwatch:SetPoint("RIGHT", container, "RIGHT", -5, 0)  -- Fixed position for PB column
-        powerSwatch:SetColor(powerColor[1], powerColor[2], powerColor[3], powerColor[4])
-        
-        prevElement = unitCB
-    end
-    
-    -- Store frames for reference
-    Shadow.frames = {
-        container = container,
-        enableShadowCB = enableShadowCB,
-        shadowSizeSlider = shadowSizeSlider
-    }
-    
-    return container
+function Shadow:RegisterEvents()
+	self.eventFrame = CreateFrame("Frame")
+	local events = {
+		"PLAYER_ENTERING_WORLD",
+		"GROUP_ROSTER_UPDATE",
+		"PLAYER_TARGET_CHANGED",
+		"PLAYER_FOCUS_CHANGED"
+	}
+	
+	for _, event in ipairs(events) do
+		self.eventFrame:RegisterEvent(event)
+	end
+	
+	self.eventFrame:SetScript("OnEvent", function()
+		C_Timer.After(0.5, function()
+			self:Update()
+		end)
+	end)
+	
+	Utils:Debug("Registered WoW events")
 end
 
--- Toggle module enabled/disabled state
+function Shadow:RegisterCallbacks()
+	local Cell = ns.Cell or _G.Cell
+	if not Cell or not Cell.RegisterCallback then
+		Utils:Debug("Cell callbacks not available")
+		return
+	end
+	
+	local callbacks = {
+		"Cell_UnitButtonCreated",
+		"Cell_Layout_Updated",
+		"Cell_Group_Updated"
+	}
+	
+	for _, callbackName in ipairs(callbacks) do
+		Cell:RegisterCallback(callbackName, function()
+			C_Timer.After(0.2, function()
+				self:Update()
+			end)
+		end)
+	end
+	
+	Utils:Debug("Registered Cell callbacks")
+end
+
+function Shadow:Update()
+	if not self.initialized or not self.settingsManager:Get("enabled") then
+		return
+	end
+	
+	-- Scan for new frames
+	self.frameScanner:ScanAllFrames()
+	
+	-- Update all shadows
+	self.shadowManager:UpdateAllShadows()
+	
+	Utils:Debug("Shadow update complete: " .. self.shadowManager:GetActiveCount() .. " shadows active")
+end
+
 function Shadow:SetEnabled(enabled)
-    if CellAdditionsDB and CellAdditionsDB.shadowSettings then
-        CellAdditionsDB.shadowSettings.enabled = enabled
-        
-        -- Update UI if available
-        if Shadow.frames and Shadow.frames.enableShadowCB then
-            Shadow.frames.enableShadowCB:SetChecked(enabled)
-        end
-        
-        ApplyShadows()
-    end
+	if not CellAdditionsDB then
+		Utils:Debug("Database not available")
+		return
+	end
+	
+	local wasEnabled = self.settingsManager:Get("enabled")
+	self.settingsManager:Set("enabled", enabled)
+	
+	Utils:Debug("Shadow module " .. (enabled and "enabled" or "disabled"))
+	
+	if enabled and not wasEnabled then
+		self:Initialize()
+		C_Timer.After(0.5, function()
+			self:Update()
+		end)
+	elseif not enabled and wasEnabled then
+		self.shadowManager:DestroyAllShadows()
+	end
 end
 
--- Export the module
-ns.Shadow = Shadow
-ns.addon = ns.addon or {}
-ns.addon.Shadow = Shadow
+function Shadow:CreateSettings(parent)
+	return self.uiManager:CreateSettings(parent)
+end
 
--- Register the module after a short delay to ensure main addon is loaded
+-- ============================================================================
+-- Module Registration
+-- ============================================================================
+
+-- Create singleton instance
+local shadowInstance = Shadow:New()
+
+-- Export to namespace
+ns.Shadow = shadowInstance
+ns.addon = ns.addon or {}
+ns.addon.Shadow = shadowInstance
+
+-- Export the class for direct access if needed
+ns.ShadowClass = Shadow
+
+-- Register module
 C_Timer.After(0, function()
-    if ns.RegisterModule then
-        ns.RegisterModule(Shadow)
-        ns.Debug("Shadow module registered")
-    else
-        print("[CellAdditions] ERROR: ns.RegisterModule not available for Shadow module")
-    end
+	if ns.RegisterModule then
+		ns.RegisterModule(shadowInstance)
+		Utils:Debug("Shadow module registered with module system")
+	else
+		Utils:Debug("Module system not available for registration")
+	end
 end) 
