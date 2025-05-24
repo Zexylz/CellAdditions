@@ -1,8 +1,4 @@
-local addonName, ns = ...
-
--- ============================================================================
--- Clicker Module - Advanced OOP Implementation
--- ============================================================================
+local ns = ...
 
 local Clicker = {}
 Clicker.__index = Clicker
@@ -34,9 +30,6 @@ local DEFAULT_SETTINGS = {
 	textureBlendMode = "BLEND"
 }
 
--- ============================================================================
--- Utility Functions
--- ============================================================================
 
 local Utils = {}
 
@@ -69,9 +62,6 @@ function Utils:MergeDefaults(settings, defaults)
 	end
 end
 
--- ============================================================================
--- Settings Manager
--- ============================================================================
 
 local SettingsManager = {}
 SettingsManager.__index = SettingsManager
@@ -109,9 +99,6 @@ function SettingsManager:GetAll()
 	return self.settings
 end
 
--- ============================================================================
--- Texture Manager
--- ============================================================================
 
 local TextureManager = {}
 TextureManager.__index = TextureManager
@@ -245,9 +232,6 @@ function TextureManager:RescanTextures()
 	return self:ScanTextures()
 end
 
--- ============================================================================
--- Frame Manager
--- ============================================================================
 
 local FrameManager = {}
 FrameManager.__index = FrameManager
@@ -412,10 +396,6 @@ function FrameManager:GetActiveFrameCount()
 	return count
 end
 
--- ============================================================================
--- Layout Manager
--- ============================================================================
-
 local LayoutManager = {}
 LayoutManager.__index = LayoutManager
 
@@ -504,9 +484,7 @@ function LayoutManager:IsValidFrame(frame)
 		   frame.widgets.healthBar
 end
 
--- ============================================================================
--- UI Manager
--- ============================================================================
+
 
 local UIManager = {}
 UIManager.__index = UIManager
@@ -845,9 +823,6 @@ function UIManager:TriggerLayoutUpdate()
 	end)
 end
 
--- ============================================================================
--- Main Clicker Class
--- ============================================================================
 
 function Clicker:New()
 	local instance = setmetatable({}, self)
@@ -970,9 +945,6 @@ function Clicker:CreateSettings(parent, enableCheckbox)
 	self.uiManager:CreateSettings(parent, enableCheckbox)
 end
 
--- ============================================================================
--- Module Registration
--- ============================================================================
 
 -- Create singleton instance
 local clickerInstance = Clicker:New()
