@@ -675,7 +675,7 @@ function UIManager:CreateTextureSettings(parent)
 	-- Enable texture checkbox
 	local textureCheckbox = Cell.CreateCheckButton(parent, "Enable Texture Overlay", function(checked)
 		self.settingsManager:Set("textureEnabled", checked)
-		print("[CellAdditions] Texture enabled: " .. tostring(checked)) -- Visible to user
+		Utils:Debug("[CellAdditions] Texture enabled: " .. tostring(checked)) -- Visible to user
 		self:UpdateTextureWidgetStates()
 		self:TriggerLayoutUpdate()
 	end)
@@ -689,24 +689,6 @@ function UIManager:CreateTextureSettings(parent)
 	
 	local textureDropdown = Cell.CreateDropdown(parent, 120)
 	textureDropdown:SetPoint("LEFT", textureLabel, "RIGHT", 10, 0)
-	
-	-- Refresh button
-	local refreshButton = Cell.CreateButton(parent, "↻", "accent", {25, 20})
-	refreshButton:SetPoint("LEFT", textureDropdown, "RIGHT", 5, 0)
-	refreshButton:SetScript("OnClick", function()
-		self:RefreshTextureDropdown(textureDropdown)
-	end)
-	
-	-- Set tooltip for refresh button
-	refreshButton:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:SetText("Refresh Texture List")
-		GameTooltip:AddLine("Scans the texture folder for new files", 1, 1, 1)
-		GameTooltip:Show()
-	end)
-	refreshButton:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
 	
 	-- Populate dropdown initially
 	self:PopulateTextureDropdown(textureDropdown)
@@ -788,7 +770,7 @@ function UIManager:PopulateTextureDropdown(dropdown)
 			value = texture.id,
 			onClick = function()
 				self.settingsManager:Set("selectedTexture", texture.id)
-				print("[CellAdditions] Selected texture: " .. texture.id) -- Visible to user
+				Utils:Debug("[CellAdditions] Selected texture: " .. texture.id) -- Visible to user
 				self:TriggerLayoutUpdate()
 			end
 		})

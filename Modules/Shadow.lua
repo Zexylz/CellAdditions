@@ -542,6 +542,17 @@ function UIManager:New(settingsManager, shadowManager)
 	return instance
 end
 
+-- Helper function to create consistent separators
+function UIManager:CreateSeparator(parent, anchor, offsetY)
+	local Cell = ns.Cell or _G.Cell
+	local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or {1, 1, 1}
+	local separator = parent:CreateTexture(nil, "ARTWORK")
+	separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+	separator:SetSize(250, 1)
+	separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15)
+	return separator
+end
+
 function UIManager:CreateSettings(parent)
 	local Cell = ns.Cell or _G.Cell
 	if not Cell then
@@ -552,10 +563,16 @@ function UIManager:CreateSettings(parent)
 	local container = parent
 	local settings = self.settingsManager:GetAll()
 	
-	-- Create sections
+	-- Create sections with consistent separators
 	local lastElement = self:CreateGeneralSettings(container, settings)
-	lastElement = self:CreateFrameTypeSettings(container, settings, lastElement)
-	lastElement = self:CreateUnitFrameSettings(container, settings, lastElement)
+	
+	-- Add separator before frame type settings
+	local separator1 = self:CreateSeparator(container, lastElement)
+	lastElement = self:CreateFrameTypeSettings(container, settings, separator1)
+	
+	-- Add separator before unit frame settings  
+	local separator2 = self:CreateSeparator(container, lastElement)
+	lastElement = self:CreateUnitFrameSettings(container, settings, separator2)
 	
 	-- Calculate and set proper content height
 	local totalHeight = 400 -- Base height for all the content
@@ -621,7 +638,7 @@ function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
 	
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
+	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
 	header:SetText(L["Cell"] or "Cell")
 	
 	local lastElement = header
@@ -661,16 +678,9 @@ end
 function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 	local Cell = ns.Cell or _G.Cell
 	
-	-- Add separator line before the unit frames section
-	local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or {1, 1, 1}
-	local separator = parent:CreateTexture(nil, "ARTWORK")
-	separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.4)
-	separator:SetSize(250, 1)
-	separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, -15)
-	
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-	header:SetPoint("TOPLEFT", separator, "BOTTOMLEFT", 0, -10)
+	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
 	header:SetText(L["Cell"] or "Cell")
 	
 	-- Column headers - positioned to align with color pickers
