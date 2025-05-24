@@ -12,7 +12,7 @@
 Locales\LoadLocales.xml
 
 # Core files
-cell-additions.lua
+Core.lua
 
 # Texture configuration (loads first)
 Media\Textures\TextureList.lua
@@ -20,7 +20,7 @@ Media\Textures\TextureList.lua
 # API
 API\FrameState.lua
 API\UIFrames.lua
-
+    
 # Modules
 Modules\Shadow.lua
 Modules\Clicker.lua

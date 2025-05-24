@@ -716,7 +716,6 @@ function UIManager:CreateTextureSettings(parent)
 	
 	-- Store references
 	self.textureDropdown = textureDropdown
-	self.refreshButton = refreshButton
 	self.alphaSlider = alphaSlider
 	self.lastAnchor = alphaSlider
 end

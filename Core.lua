@@ -981,11 +981,6 @@ function CellAdditions:Initialize()
 	Utils:Debug("CellAdditions initialized successfully")
 end
 
-function CellAdditions:SetupAceConfig()
-	-- AceConfig setup removed - we use our own settings UI
-	Utils:Debug("Using custom settings UI instead of AceConfig")
-end
-
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:SetScript("OnEvent", function(self, event, addon)
