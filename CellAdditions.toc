@@ -6,6 +6,7 @@
 ## Dependencies: Cell
 ## SavedVariables: CellAdditionsDB
 ## X-Cell-Category: Utilities
+## IconTexture: Interface\AddOns\CellAdditions\Media\icon.tga
 
 # Core files
 cell-additions.lua

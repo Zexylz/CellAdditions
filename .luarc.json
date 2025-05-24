@@ -1,0 +1,28 @@
+{
+  "workspace": {
+    "library": [
+      "./"  // Nimmt dein Projekt als Workspace auf
+    ],
+    "ignoreDir": [
+      ".github"
+    ]
+  },
+  "runtime": {
+    "version": "Lua 5.1", 
+    "path": [
+      "?.lua",
+      "?/init.lua"
+    ]
+  },
+  "diagnostics": {
+    "globals": [
+      "Cell",
+      "UnitButton",
+      "CreateFrame",
+      "GetTime"
+    ]
+  },
+  "telemetry": {
+    "enable": false
+  }
+}
