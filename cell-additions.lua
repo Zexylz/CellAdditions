@@ -425,7 +425,9 @@ function CellIntegration:New()
 	return setmetatable({
 		customMenu = nil,
 		originalUtilitiesBtn = nil,
-		replacementBtn = nil
+		replacementBtn = nil,
+		hookedTabCallbacks = {},
+		tabCallbacksRegistered = false
 	}, self)
 end
 
@@ -433,7 +435,7 @@ function CellIntegration:CreateUtilitiesMenu(parent)
 	local Cell = _G.Cell
 	if not Cell then return end
 	
-	local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+	local menu = _G.CreateFrame("Frame", nil, parent, "BackdropTemplate")
 	Cell.StylizeFrame(menu, {0.1, 0.1, 0.1, 0.9}, {0, 0, 0, 1})
 	menu:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
 	menu:Hide()
@@ -482,7 +484,7 @@ function CellIntegration:CreateUtilitiesMenu(parent)
 		
 		btn:SetScript("OnClick", function()
 			self:HandleMenuClick(item.id)
-				menu:Hide()
+			menu:Hide()
 		end)
 		
 		buttons[i] = btn
@@ -511,10 +513,10 @@ function CellIntegration:CreateUtilitiesMenu(parent)
 				-- Reset to transparent background
 				if button.SetBackdropColor then
 					button:SetBackdropColor(0, 0, 0, 0)
-					end
 				end
-					end
-				end
+			end
+		end
+	end
 
 	return menu
 end
@@ -531,16 +533,16 @@ function CellIntegration:HandleMenuClick(itemId)
 	end
 	
 	if itemId == "additions" then
-				if Cell.funcs.ShowOptionsFrame then
-					Cell.funcs.ShowOptionsFrame()
-				end
+		if Cell.funcs.ShowOptionsFrame then
+			Cell.funcs.ShowOptionsFrame()
+		end
 
-				C_Timer.After(0.1, function()
-					if Cell.funcs.ShowUtilitiesTab then
-						Cell.funcs.ShowUtilitiesTab()
-						Cell.Fire("CellAdditions_ShowAdditionsPanel")
-					end
-				end)
+		C_Timer.After(0.1, function()
+			if Cell.funcs.ShowUtilitiesTab then
+				Cell.funcs.ShowUtilitiesTab()
+				Cell.Fire("CellAdditions_ShowAdditionsPanel")
+			end
+		end)
 	else
 		-- Handle other utilities
 		self:ShowUtility(itemId)
@@ -589,34 +591,34 @@ function CellIntegration:ReplaceUtilitiesButton()
 	local Cell = _G.Cell
 	if not Cell or not Cell.frames or not Cell.frames.optionsFrame then
 		C_Timer.After(1, function() self:ReplaceUtilitiesButton() end)
-			return
-		end
+		return
+	end
 
 	-- Find original button
 	local origBtn
 	for _, child in pairs({Cell.frames.optionsFrame:GetChildren()}) do
 		if child:IsObjectType("Button") and child.id == "utilities" then
 			origBtn = child
-				break
-			end
+			break
 		end
+	end
 
 	if not origBtn then
 		C_Timer.After(1, function() self:ReplaceUtilitiesButton() end)
-			return
-		end
+		return
+	end
 
 	-- Create replacement
 	local L = Cell.L or {}
 	local newBtn = Cell.CreateButton(
 		Cell.frames.optionsFrame,
-			L["Utilities"],
-			"accent-hover",
+		L["Utilities"],
+		"accent-hover",
 		{105, 20},
 		nil, nil,
-			"CELL_FONT_WIDGET_TITLE",
-			"CELL_FONT_WIDGET_TITLE_DISABLE"
-		)
+		"CELL_FONT_WIDGET_TITLE",
+		"CELL_FONT_WIDGET_TITLE_DISABLE"
+	)
 	
 	newBtn.id = "utilities"
 	newBtn:SetSize(origBtn:GetSize())
@@ -668,27 +670,35 @@ function CellIntegration:ReplaceUtilitiesButton()
 	
 	-- Click handler
 	newBtn:SetScript("OnClick", function()
-			if Cell.funcs.ShowOptionsFrame then
-				Cell.funcs.ShowOptionsFrame()
-			end
-			if Cell.funcs.ShowUtilitiesTab then
-				Cell.funcs.ShowUtilitiesTab()
-			end
+		if Cell.funcs.ShowOptionsFrame then
+			Cell.funcs.ShowOptionsFrame()
+		end
+		if Cell.funcs.ShowUtilitiesTab then
+			Cell.funcs.ShowUtilitiesTab()
+		end
 
 		C_Timer.After(0.3, function()
-					local utilityToShow = CellAdditionsDB.currentTab or "raidTools"
-					if utilityToShow == "additions" then
-								Cell.Fire("CellAdditions_ShowAdditionsPanel")
+			local utilityToShow = CellAdditionsDB.currentTab or "raidTools"
+			if utilityToShow == "additions" then
+				Cell.Fire("CellAdditions_ShowAdditionsPanel")
 			else
-							Cell.Fire("ShowUtilitySettings", utilityToShow)
-				
-				local listFrame = self:GetUtilityListFrame()
-					if listFrame and listFrame.buttons and listFrame.buttons[utilityToShow] then
-						listFrame.buttons[utilityToShow]:Click()
+				-- If we were showing additions, reset the state
+				if ns.wasShowingAdditions then
+					ns.wasShowingAdditions = false
+					if Cell.frames.additionsPanel then
+						Cell.frames.additionsPanel:Hide()
 					end
 				end
-			end)
+				
+				Cell.Fire("ShowUtilitySettings", utilityToShow)
+				
+				local listFrame = self:GetUtilityListFrame()
+				if listFrame and listFrame.buttons and listFrame.buttons[utilityToShow] then
+					listFrame.buttons[utilityToShow]:Click()
+				end
+			end
 		end)
+	end)
 
 	-- Hide original button
 	origBtn:SetParent(nil)
@@ -712,132 +722,144 @@ function CellIntegration:RegisterCallbacks()
 		self:ShowAdditionsPanel()
 	end)
 	
-	-- Hook Cell's actual tab buttons for foolproof height management
-	self:HookTabButtons()
+	-- Hook Cell's tab management system properly
+	self:HookCellTabSystem()
 end
 
-function CellIntegration:HookTabButtons()
+function CellIntegration:HookCellTabSystem()
 	local Cell = _G.Cell
-	if not Cell or not Cell.frames or not Cell.frames.optionsFrame then
-		-- Try again later if Cell isn't ready
-		C_Timer.After(1, function() self:HookTabButtons() end)
-		return
-	end
+	if not Cell then return end
 	
-	Utils:Debug("Hooking Cell tab buttons for height management")
-	
-	-- Find all tab buttons in the options frame
-	local tabButtons = {}
-	local function findTabButtons(frame)
-		for _, child in pairs({frame:GetChildren()}) do
-			if child:IsObjectType("Button") and child.id then
-				-- These are Cell's tab buttons
-				if child.id == "general" or child.id == "appearance" or child.id == "layouts" or 
-				   child.id == "clickCastings" or child.id == "indicators" or child.id == "debuffs" or 
-				   child.id == "utilities" or child.id == "about" then
-					tabButtons[child.id] = child
-					Utils:Debug("Found tab button: " .. child.id)
-				end
+	-- Hook into Cell's ShowOptionsTab callback system
+	if not self.tabCallbacksRegistered then
+		-- Register our own callback to track when Cell switches tabs
+		Cell.RegisterCallback("ShowOptionsTab", "CellAdditions_TabTracker", function(tab)
+			Utils:Debug("Cell switching to tab: " .. tostring(tab))
+			
+			-- If we're showing additions and Cell is switching to another tab, hide additions
+			if ns.wasShowingAdditions and tab ~= "additions" then
+				Utils:Debug("Hiding additions panel due to Cell tab switch to: " .. tab)
+				self:HideAdditionsPanel()
+				
+				-- Let Cell handle the height for the new tab - don't interfere
+				-- Cell will automatically set the correct height based on the tab
 			end
-		end
-	end
-	
-	findTabButtons(Cell.frames.optionsFrame)
-	
-	-- Hook each tab button's OnClick script
-	for tabId, button in pairs(tabButtons) do
-		if button:GetScript("OnClick") then
-			local originalOnClick = button:GetScript("OnClick")
-			button:SetScript("OnClick", function(...)
-				-- Check if we're leaving the additions panel
-				local wasShowingAdditions = Cell.frames.additionsPanel and Cell.frames.additionsPanel:IsShown()
-				
-				if wasShowingAdditions then
-					Utils:Debug("Leaving additions panel for tab: " .. tabId)
-					-- Hide the additions panel
-					if Cell.frames.additionsPanel then
-						Cell.frames.additionsPanel:Hide()
-					end
-					
-					-- Force height reset to Cell's original height
-					local optionsFrame = Cell.frames.optionsFrame
-					if optionsFrame then
-						-- Use Cell's original height or a sensible default
-						local targetHeight = ns.originalOptionsFrameHeight or 400
-						optionsFrame:SetHeight(targetHeight)
-						Utils:Debug("Reset frame height to: " .. targetHeight)
-					end
-				end
-				
-				-- Call the original click handler
-				return originalOnClick(...)
-			end)
-			Utils:Debug("Hooked tab button: " .. tabId)
-		end
-	end
-	
-	Utils:Debug("Completed hooking " .. self:CountTable(tabButtons) .. " tab buttons")
-end
-
-function CellIntegration:CountTable(tbl)
-	local count = 0
-	for _ in pairs(tbl) do
-		count = count + 1
-	end
-	return count
-end
-
-function CellIntegration:HideAllTabs()
-	local Cell = _G.Cell
-	if not Cell or not Cell.frames then return end
-	
-	local tabs = {
-		"generalTab", "appearanceTab", "layoutsTab", "clickCastingsTab",
-		"indicatorsTab", "debuffsTab", "utilitiesTab", "aboutTab"
-	}
-	
-	for _, tabName in ipairs(tabs) do
-		if Cell.frames[tabName] then
-			Cell.frames[tabName]:Hide()
-		end
+		end)
+		
+		self.tabCallbacksRegistered = true
+		Utils:Debug("Hooked into Cell's tab system properly")
 	end
 end
-
-
 
 function CellIntegration:ShowAdditionsPanel()
 	local Cell = _G.Cell
 	if not Cell or not Cell.frames then return end
 	
-	-- Hide utility children
+	local panel = Cell.frames.additionsPanel
+	if not panel then return end
+	
+	local optionsFrame = Cell.frames.optionsFrame
+	
+	-- Hide all Cell tab content the proper way
+	self:HideAllCellTabContent()
+	
+	-- Set the frame height for additions (Cell will manage this properly)
+	optionsFrame:SetHeight(550)
+	
+	-- Parent panel to content area and show
+	panel:SetParent(optionsFrame)
+	panel:ClearAllPoints()
+	panel:SetAllPoints(optionsFrame)
+	panel:Show()
+	
+	-- Mark that we're showing additions
+	ns.wasShowingAdditions = true
+	
+	Utils:Debug("Showing Additions panel with proper Cell integration")
+end
+
+function CellIntegration:HideAdditionsPanel()
+	local Cell = _G.Cell
+	if not Cell or not Cell.frames then return end
+	
+	local panel = Cell.frames.additionsPanel
+	if panel then
+		panel:Hide()
+	end
+	
+	-- Clear additions state
+	ns.wasShowingAdditions = false
+	
+	-- DON'T manually set height - let Cell handle it
+	-- Cell will automatically set the correct height when showing the target tab
+	
+	Utils:Debug("Hidden additions panel - letting Cell manage height")
+end
+
+function CellIntegration:HideAllCellTabContent()
+	local Cell = _G.Cell
+	if not Cell or not Cell.frames then return end
+	
+	-- Get list of all Cell tab frames
+	local tabFrames = {
+		"generalTab",
+		"appearanceTab", 
+		"layoutsTab",
+		"clickCastingsTab",
+		"indicatorsTab",
+		"debuffsTab",
+		"utilitiesTab",
+		"aboutTab"
+	}
+	
+	-- Hide all tab frames
+	for _, tabName in ipairs(tabFrames) do
+		if Cell.frames[tabName] then
+			Cell.frames[tabName]:Hide()
+			Utils:Debug("Hidden tab frame: " .. tabName)
+		end
+	end
+	
+	-- Also hide any utility content that might be showing
 	if Cell.frames.utilitiesTab then
 		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
-			if child:IsObjectType("Frame") then
+			if child:IsObjectType("Frame") and child ~= Cell.frames.utilitiesTab.mask then
 				child:Hide()
 			end
 		end
 	end
 	
-	local panel = Cell.frames.additionsPanel
-	if not panel then return end
+	Utils:Debug("Hidden all Cell tab content properly")
+end
+
+function CellIntegration:GetCurrentCellTab()
+	local Cell = _G.Cell
+	if not Cell then return "general" end
 	
-	local optionsFrame = Cell.frames.optionsFrame
-	local contentFrame = optionsFrame.content or optionsFrame
-	
-	-- Extend frame height to accommodate our additions panel
-	local currentHeight = optionsFrame:GetHeight()
-	if currentHeight < 550 then
-		optionsFrame:SetHeight(550)
-		Utils:Debug("Extended frame height from " .. currentHeight .. " to 550")
+	-- Check Cell's lastShownTab variable first
+	if Cell.vars and Cell.vars.lastShownTab then
+		return Cell.vars.lastShownTab
 	end
 	
-	-- Parent panel to content area
-	panel:SetParent(contentFrame)
-	panel:ClearAllPoints()
-	panel:SetAllPoints(contentFrame)
-	panel:Show()
+	-- Fallback: check which tab frame is visible
+	local tabFrames = {
+		{name = "generalTab", id = "general"},
+		{name = "appearanceTab", id = "appearance"},
+		{name = "layoutsTab", id = "layouts"},
+		{name = "clickCastingsTab", id = "clickCastings"},
+		{name = "indicatorsTab", id = "indicators"},
+		{name = "debuffsTab", id = "debuffs"},
+		{name = "utilitiesTab", id = "utilities"},
+		{name = "aboutTab", id = "about"}
+	}
 	
-	Utils:Debug("Showing Additions panel")
+	for _, tab in ipairs(tabFrames) do
+		if Cell.frames[tab.name] and Cell.frames[tab.name]:IsShown() then
+			return tab.id
+		end
+	end
+	
+	return "general" -- Default fallback
 end
 
 -- ============================================================================
@@ -945,7 +967,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:SetScript("OnEvent", function(self, event, addon)
 	if event == "ADDON_LOADED" and addon == addonName then
 		-- Initialize after a short delay to ensure Cell is ready
-		C_Timer.After(2, function()
+		C_Timer.After(0.1, function()
 			CellAdditions:Initialize()
 		end)
 		

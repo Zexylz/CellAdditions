@@ -1,4 +1,4 @@
-local addonName, ns = ...
+local _, ns = ...
 
 -- ============================================================================
 -- Shadow Module - Advanced OOP Implementation
@@ -44,27 +44,27 @@ local DEFAULT_SETTINGS = {
 	
 	-- Unit frame configurations
 	unitFrames = {
-		Player = {
+    Player = {
 			enabled = true,
 			healthColor = {0.7, 0.9, 0.3, 1},
 			powerColor = {0.9, 0.7, 0.3, 1}
-		},
-		Target = {
+    },
+    Target = {
 			enabled = true,
 			healthColor = {0.9, 0.7, 0.3, 1},
 			powerColor = {0.9, 0.5, 0.3, 1}
-		},
-		TargetTarget = {
+    },
+    TargetTarget = {
 			enabled = false,
 			healthColor = {0.9, 0.3, 0.5, 1},
 			powerColor = {0.9, 0.3, 0.5, 1}
-		},
-		Focus = {
+    },
+    Focus = {
 			enabled = true,
 			healthColor = {0.7, 0.3, 0.7, 1},
 			powerColor = {0.5, 0.3, 0.7, 1}
-		},
-		Pet = {
+    },
+    Pet = {
 			enabled = false,
 			healthColor = {0.5, 0.3, 0.7, 1},
 			powerColor = {0.5, 0.3, 0.7, 1}
@@ -125,7 +125,7 @@ function Utils:MergeDefaults(settings, defaults)
 		elseif type(value) == "table" and type(settings[key]) == "table" then
 			self:MergeDefaults(settings[key], value)
 		end
-	end
+    end
 end
 
 function Utils:IsFrameValid(frame)
@@ -202,9 +202,9 @@ end
 
 function ShadowObject:Create()
 	if self.shadowFrame or not self.frame then
-		return false
-	end
-	
+        return false
+    end
+    
 	-- Create shadow frame
 	local shadowFrame = CreateFrame("Frame", nil, self.frame, "BackdropTemplate")
 	shadowFrame:SetFrameStrata(FRAME_STRATA)
@@ -218,14 +218,14 @@ function ShadowObject:Create()
 	
 	self.shadowFrame = shadowFrame
 	Utils:Debug("Created shadow for " .. (self.frame:GetName() or "unnamed"))
-	return true
-end
+            return true
+        end
 
 function ShadowObject:Update(size, color)
 	if not self.shadowFrame or not color then
-		return false
-	end
-	
+        return false
+    end
+    
 	local effectiveSize = size * SHADOW_SIZE_MULTIPLIER
 	local insetSize = effectiveSize * SHADOW_INSET_MULTIPLIER
 	
@@ -258,9 +258,9 @@ end
 function ShadowObject:Show()
 	if self.shadowFrame then
 		self.shadowFrame:Show()
-	end
-end
-
+        end
+    end
+    
 function ShadowObject:Hide()
 	if self.shadowFrame then
 		self.shadowFrame:Hide()
@@ -338,10 +338,10 @@ function ShadowManager:UpdateAllShadows()
 		else
 			shadowObj:Destroy()
 			self.shadowObjects[frame] = nil
-		end
-	end
-end
-
+            end
+        end
+    end
+    
 function ShadowManager:GetShadowColor(frameType, shadowType)
 	local settings = self.settingsManager:GetAll()
 	
@@ -352,8 +352,8 @@ function ShadowManager:GetShadowColor(frameType, shadowType)
 			return unitSettings.powerColor
 		else
 			return unitSettings.healthColor
-		end
-	end
+                end
+            end
 	
 	-- Frame type colors
 	if settings.frameTypes[frameType] then
@@ -383,9 +383,9 @@ end
 function ShadowManager:HideAllShadows()
 	for frame, shadowObj in pairs(self.shadowObjects) do
 		shadowObj:Hide()
-	end
-end
-
+        end
+    end
+    
 function ShadowManager:DestroyAllShadows()
 	for frame, shadowObj in pairs(self.shadowObjects) do
 		shadowObj:Destroy()
@@ -483,18 +483,18 @@ function FrameScanner:ScanGroupFrames(frameType, patterns)
 						local frame = _G[frameName]
 						if Utils:IsFrameValid(frame) then
 							self.shadowManager:CreateShadow(frame, frameType)
-						end
-					end
-				end
-			end
-		else
+                        end
+                    end
+                end
+            end
+        else
 			-- Direct frame name
 			local frame = _G[pattern]
 			if Utils:IsFrameValid(frame) then
 				self.shadowManager:CreateShadow(frame, frameType)
-			end
-		end
-	end
+        end
+    end
+end
 end
 
 function FrameScanner:FindChildFrame(parent, namePattern)
@@ -558,10 +558,10 @@ function UIManager:CreateSettings(parent)
 		else
 			if scrollFrame.scrollBar then
 				scrollFrame.scrollBar:Show()
-			end
-		end
-	end
-	
+            end
+        end
+    end
+    
 	return container
 end
 
@@ -643,9 +643,16 @@ end
 function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 	local Cell = ns.Cell or _G.Cell
 	
+	-- Add separator line before the unit frames section
+	local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or {1, 1, 1}
+	local separator = parent:CreateTexture(nil, "ARTWORK")
+	separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.4)
+	separator:SetSize(250, 1)
+	separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, -15)
+	
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -25)
+	header:SetPoint("TOPLEFT", separator, "BOTTOMLEFT", 0, -10)
 	header:SetText("Cell - Unit Frames")
 	
 	-- Column headers - positioned to align with color pickers
@@ -705,11 +712,11 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 end
 
 function UIManager:TriggerShadowUpdate()
-	C_Timer.After(0.1, function()
+                    C_Timer.After(0.1, function()
 		if ns.Shadow and ns.Shadow.shadowManager then
 			ns.Shadow.shadowManager:UpdateAllShadows()
-		end
-	end)
+                end
+            end)
 end
 
 -- ============================================================================
@@ -754,7 +761,7 @@ function Shadow:Initialize()
 	Utils:Debug("Shadow module initialized successfully")
 	
 	-- Initial scan
-	C_Timer.After(1, function()
+            C_Timer.After(1, function()
 		self:Update()
 	end)
 end
@@ -775,19 +782,19 @@ function Shadow:RegisterEvents()
 	self.eventFrame:SetScript("OnEvent", function()
 		C_Timer.After(0.5, function()
 			self:Update()
-		end)
-	end)
-	
+        end)
+    end)
+    
 	Utils:Debug("Registered WoW events")
 end
 
 function Shadow:RegisterCallbacks()
-	local Cell = ns.Cell or _G.Cell
+    local Cell = ns.Cell or _G.Cell
 	if not Cell or not Cell.RegisterCallback then
 		Utils:Debug("Cell callbacks not available")
-		return
-	end
-	
+        return
+    end
+    
 	local callbacks = {
 		"Cell_UnitButtonCreated",
 		"Cell_Layout_Updated",
@@ -861,10 +868,10 @@ ns.ShadowClass = Shadow
 
 -- Register module
 C_Timer.After(0, function()
-	if ns.RegisterModule then
+    if ns.RegisterModule then
 		ns.RegisterModule(shadowInstance)
 		Utils:Debug("Shadow module registered with module system")
-	else
+    else
 		Utils:Debug("Module system not available for registration")
-	end
+    end
 end) 

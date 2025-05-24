@@ -1,4 +1,4 @@
-local ns = ...
+local _, ns = ...
 
 local Clicker = {}
 Clicker.__index = Clicker
@@ -18,11 +18,11 @@ local TEXTURE_PATH = "Interface/AddOns/CellAdditions/Media/Textures/"
 -- Default settings
 local DEFAULT_SETTINGS = {
 	enabled = true,
-	width = 100,
-	height = 150,
-	useCustomSize = false,
-	offsetX = 0,
-	offsetY = 0,
+		width = 100,
+		height = 150,
+		useCustomSize = false,
+		offsetX = 0,
+		offsetY = 0,
 	debug = false,
 	textureEnabled = false,
 	selectedTexture = "none",
@@ -205,12 +205,12 @@ function TextureManager:UpdateTexture(textureFrame, textureId, settings)
 	if not textureFrame or not textureFrame.texture then
 		return
 	end
-	
+
 	if not settings.textureEnabled or textureId == "none" then
 		textureFrame:Hide()
-		return
+		return 
 	end
-	
+
 	local texturePath = self:GetTexturePath(textureId)
 	if texturePath then
 		textureFrame.texture:SetTexture(texturePath)
@@ -327,7 +327,7 @@ function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
 		Utils:Debug("No unit ID found for clicker")
 		return
 	end
-	
+
 	-- Create secure unit button
 	local unitClickButton = CreateFrame("Button", nil, hitbox, "SecureUnitButtonTemplate")
 	unitClickButton:SetAllPoints(hitbox)
@@ -383,7 +383,7 @@ function FrameManager:CleanupAllFrames()
 			_G[name] = nil
 		end
 	end
-	
+
 	self.activeFrames = {}
 	Utils:Debug("Cleaned up all clicker frames")
 end
@@ -416,7 +416,7 @@ function LayoutManager:UpdateLayout()
 	local Cell = ns.Cell or _G.Cell
 	if not Cell or not _G.CUF or not _G.CUF.unitButtons then
 		Utils:Debug("Required components not available for layout")
-		return
+					return
 	end
 	
 	-- Clean up existing frames first
@@ -453,7 +453,7 @@ function LayoutManager:ProcessUnitButton(unitButton)
 				end
 			end
 		end
-	else
+				else
 		-- This is a single frame
 		if self:IsValidFrame(unitButton) then
 			local clickerData = self.frameManager:CreateClickerFrame(unitButton)
@@ -502,9 +502,9 @@ function UIManager:CreateSettings(parent, enableCheckbox)
 		Utils:Debug("Cell not available for settings UI")
 		return
 	end
-	
+
 	local content = parent
-	
+
 	-- Settings header
 	local settingsHeader = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
 	settingsHeader:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -25)
@@ -819,7 +819,7 @@ function UIManager:TriggerLayoutUpdate()
 	C_Timer.After(0.1, function()
 		if ns.Clicker and ns.Clicker.layoutManager then
 			ns.Clicker.layoutManager:UpdateLayout()
-		end
+end
 	end)
 end
 
@@ -845,13 +845,13 @@ function Clicker:Initialize()
 	
 	-- Initialize settings
 	self.settingsManager:Initialize()
-	
+
 	-- Check if module is enabled
 	if not self.settingsManager:Get("enabled") then
 		Utils:Debug("Clicker module disabled in settings")
 		return
 	end
-	
+
 	-- Register Cell callbacks
 	self:RegisterCallbacks()
 	
@@ -861,13 +861,11 @@ function Clicker:Initialize()
 	self.initialized = true
 	Utils:Debug("Clicker module initialized successfully")
 	
-	-- Apply saved settings after a short delay to ensure everything is ready
-	C_Timer.After(1, function()
-		if self.layoutManager then
-			Utils:Debug("Applying saved texture settings on initialization")
-			self.layoutManager:UpdateLayout()
-		end
-	end)
+	-- Apply settings immediately after initialization
+	if self.layoutManager then
+		Utils:Debug("Applying saved texture settings on initialization")
+		self.layoutManager:UpdateLayout()
+	end
 end
 
 function Clicker:RegisterCallbacks()
@@ -916,7 +914,7 @@ function Clicker:RegisterEvents()
 			self.layoutManager:UpdateLayout()
 		end)
 	end)
-	
+
 	Utils:Debug("Registered WoW events")
 end
 
@@ -925,15 +923,15 @@ function Clicker:SetEnabled(enabled)
 		Utils:Debug("Database not available")
 		return
 	end
-	
+
 	local wasEnabled = self.settingsManager:Get("enabled")
 	self.settingsManager:Set("enabled", enabled)
-	
+
 	print("[CellAdditions] Clicker module " .. (enabled and "enabled" or "disabled"))
-	
+
 	if enabled and not wasEnabled then
-		self:Initialize()
-		C_Timer.After(0.5, function()
+			self:Initialize()
+		C_Timer.After(0.1, function()
 			self.layoutManager:UpdateLayout()
 		end)
 	elseif not enabled and wasEnabled then
@@ -959,12 +957,12 @@ ns.ClickerClass = Clicker
 
 -- Register module
 C_Timer.After(0, function()
-	if ns.RegisterModule then
+    if ns.RegisterModule then
 		ns.RegisterModule(clickerInstance)
 		Utils:Debug("Clicker module registered with module system")
-	else
+    else
 		Utils:Debug("Module system not available for registration")
-	end
+    end
 end)
 
 -- Ensure textures are applied when Cell is fully ready
@@ -978,9 +976,8 @@ local function EnsureTexturesApplied()
 	end
 end
 
--- Multiple triggers to ensure textures show up
-C_Timer.After(2, EnsureTexturesApplied)
-C_Timer.After(5, EnsureTexturesApplied)
+-- Single trigger to ensure textures show up
+C_Timer.After(0.2, EnsureTexturesApplied)
 
 -- CUF integration
 if _G.CUF then
