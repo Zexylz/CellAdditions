@@ -7,6 +7,14 @@ ns.CellAdditions = CellAdditions
 -- Initialize addon namespace for modules
 ns.addon = CellAdditions
 
+-- Get localization table
+local L = ns.L or {}
+
+-- Ensure critical strings exist with fallbacks
+L["Version"] = L["Version"] or "Version"
+L["Features"] = L["Features"] or "Features"
+L["Settings"] = L["Settings"] or "Settings"
+L["Enable"] = L["Enable"] or "Enable"
 
 local DEBUG_ENABLED = false
 local ADDON_VERSION = "1.0"
@@ -196,13 +204,13 @@ function UIManager:CreateMainPanel()
 	if not Cell then return end
 	
 	-- Create main panel
-	local panel = Cell.CreateFrame("CellAdditionsPanel", UIParent, 400, 500)
+	local panel = Cell.CreateFrame("CellAdditionsPanel", _G.UIParent, 400, 500)
 	panel:SetPoint("CENTER")
 	panel:SetFrameStrata(FRAME_STRATA)
 	panel:Hide()
 
 	-- Create list pane
-	local listPane = Cell.CreateTitledPane(panel, "Features", 120, 120)
+	local listPane = Cell.CreateTitledPane(panel, L["Features"], 120, 120)
 	listPane:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -5)
 
 	-- Create list frame
@@ -221,7 +229,7 @@ function UIManager:CreateMainPanel()
 	listFrame.scrollFrame:SetScrollStep(19)
 
 	-- Create settings pane
-	local settingsPane = Cell.CreateTitledPane(panel, "Settings", 265, 400)
+	local settingsPane = Cell.CreateTitledPane(panel, L["Settings"], 265, 400)
 	settingsPane:SetPoint("TOPLEFT", listPane, "TOPRIGHT", 5, 0)
 	settingsPane:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -5, 5)
 
@@ -242,7 +250,7 @@ function UIManager:CreateMainPanel()
 	
 	-- Add version text
 	local versionText = panel:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-	versionText:SetText("Version: " .. ADDON_VERSION)
+	versionText:SetText(L["Version"] .. ": " .. ADDON_VERSION)
 	local accentColor = self:GetAccentColor()
 	versionText:SetTextColor(accentColor[1], accentColor[2], accentColor[3], ACCENT_COLOR_ALPHA)
 	versionText:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 10, 10)
@@ -371,7 +379,7 @@ function UIManager:ShowFeatureSettings(index)
 		-- Create Cell-style enable checkbox for Clicker
 		local Cell = _G.Cell
 		if Cell then
-			local enableCb = Cell.CreateCheckButton(content, "Enable " .. module.name, function(checked)
+			local enableCb = Cell.CreateCheckButton(content, L["Enable"] .. " " .. module.name, function(checked)
 				if module.SetEnabled then
 					module:SetEnabled(checked)
 				else
@@ -391,12 +399,12 @@ function UIManager:ShowFeatureSettings(index)
 		end
 	end
 	
-	local enableCb = CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
+	local enableCb = _G.CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
 				enableCb:SetSize(24, 24)
 				enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
 				
 				enableCb.text = enableCb:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-				enableCb.text:SetText("Enable " .. module.name)
+				enableCb.text:SetText(L["Enable"] .. " " .. module.name)
 				enableCb.text:SetPoint("LEFT", enableCb, "RIGHT", 2, 0)
 				
 				local enabledProperty = module.id .. "Enabled"
@@ -442,12 +450,12 @@ function CellIntegration:CreateUtilitiesMenu(parent)
 
 	-- Menu items
 	local menuItems = {
-		{text = "Raid Tools", id = "raidTools"},
-		{text = "Spell Request", id = "spellRequest"},
-		{text = "Dispel Request", id = "dispelRequest"},
-		{text = "Quick Assist", id = "quickAssist"},
-		{text = "Quick Cast", id = "quickCast"},
-		{text = "Additions", id = "additions"}
+		{text = L["Raid Tools"], id = "raidTools"},
+		{text = L["Spell Request"], id = "spellRequest"},
+		{text = L["Dispel Request"], id = "dispelRequest"},
+		{text = L["Quick Assist"], id = "quickAssist"},
+		{text = L["Quick Cast"], id = "quickCast"},
+		{text = L["Additions"], id = "additions"}
 	}
 	
 	-- Calculate width based on longest text

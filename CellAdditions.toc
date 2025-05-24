@@ -8,6 +8,9 @@
 ## X-Cell-Category: Utilities
 ## IconTexture: Interface\AddOns\CellAdditions\Media\icon.tga
 
+# Localization (must load first)
+Locales\LoadLocales.xml
+
 # Core files
 cell-additions.lua
 

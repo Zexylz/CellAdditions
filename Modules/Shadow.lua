@@ -1,5 +1,23 @@
 local _, ns = ...
 
+-- Get localization table  
+local L = ns.L or {}
+
+-- Ensure critical strings exist with fallbacks
+L["Shadow"] = L["Shadow"] or "Shadow"
+L["Add dynamic shadow effects to Cell unit frames and bars"] = L["Add dynamic shadow effects to Cell unit frames and bars"] or "Add dynamic shadow effects to Cell unit frames and bars"
+L["Enable Shadow"] = L["Enable Shadow"] or "Enable Shadow"
+L["Shadow Size"] = L["Shadow Size"] or "Shadow Size"
+L["Cell"] = L["Cell"] or "Cell"
+L["Solo Frame"] = L["Solo Frame"] or "Solo Frame"
+L["Party Frames"] = L["Party Frames"] or "Party Frames"
+L["Raid Frames"] = L["Raid Frames"] or "Raid Frames"
+L["Player Frame"] = L["Player Frame"] or "Player Frame"
+L["Target Frame"] = L["Target Frame"] or "Target Frame"
+L["Target's Target Frame"] = L["Target's Target Frame"] or "Target's Target Frame"
+L["Focus Frame"] = L["Focus Frame"] or "Focus Frame"
+L["Pet Frame"] = L["Pet Frame"] or "Pet Frame"
+
 -- ============================================================================
 -- Shadow Module - Advanced OOP Implementation
 -- ============================================================================
@@ -9,10 +27,10 @@ Shadow.__index = Shadow
 ns.Shadow = Shadow
 
 -- Module metadata
-Shadow.name = "Shadow"
+Shadow.name = L["Shadow"] or "Shadow"
 Shadow.id = "Shadow"
-Shadow.description = "Apply customizable shadows to Cell unit frames"
-Shadow.version = "2.0"
+Shadow.description = L["Add dynamic shadow effects to Cell unit frames and bars"] or "Add dynamic shadow effects to Cell unit frames and bars"
+Shadow.version = "1.0"
 
 -- Constants
 local SHADOW_TEXTURE = "Interface/AddOns/CellAdditions/Media/glowTex.tga"
@@ -569,7 +587,7 @@ function UIManager:CreateGeneralSettings(parent, settings)
 	local Cell = ns.Cell or _G.Cell
 	
 	-- Main enable checkbox
-	local enableCB = Cell.CreateCheckButton(parent, "Enable Shadow Effects", function(checked)
+	local enableCB = Cell.CreateCheckButton(parent, L["Enable Shadow"] or "Enable Shadow", function(checked)
 		self.settingsManager:Set("enabled", checked)
 		self:TriggerShadowUpdate()
 	end)
@@ -579,7 +597,7 @@ function UIManager:CreateGeneralSettings(parent, settings)
 	-- Shadow size slider
 	local sizeLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	sizeLabel:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -20)
-	sizeLabel:SetText("Shadow Size")
+	sizeLabel:SetText(L["Shadow Size"] or "Shadow Size")
 	
 	local sizeValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	sizeValue:SetPoint("LEFT", sizeLabel, "RIGHT", 50, 0)
@@ -604,14 +622,14 @@ function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
 	header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
-	header:SetText("Cell")
+	header:SetText(L["Cell"] or "Cell")
 	
 	local lastElement = header
 	
 	local frameTypes = {
-		{key = "solo", name = "Solo Frame"},
-		{key = "party", name = "Party Frames"},
-		{key = "raid", name = "Raid Frames"}
+		{key = "solo", name = L["Solo Frame"] or "Solo Frame"},
+		{key = "party", name = L["Party Frames"] or "Party Frames"},
+		{key = "raid", name = L["Raid Frames"] or "Raid Frames"}
 	}
 	
 	for _, frameType in ipairs(frameTypes) do
@@ -653,7 +671,7 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
 	header:SetPoint("TOPLEFT", separator, "BOTTOMLEFT", 0, -10)
-	header:SetText("Cell - Unit Frames")
+	header:SetText(L["Cell"] or "Cell")
 	
 	-- Column headers - positioned to align with color pickers
 	local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
@@ -669,11 +687,11 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 	local lastElement = header
 	
 	local unitFrames = {
-		{key = "Player", name = "Player Frame"},
-		{key = "Target", name = "Target Frame"},
-		{key = "TargetTarget", name = "Target's Target Frame"},
-		{key = "Focus", name = "Focus Frame"},
-		{key = "Pet", name = "Pet Frame"}
+		{key = "Player", name = L["Player Frame"] or "Player Frame"},
+		{key = "Target", name = L["Target Frame"] or "Target Frame"},
+		{key = "TargetTarget", name = L["Target's Target Frame"] or "Target's Target Frame"},
+		{key = "Focus", name = L["Focus Frame"] or "Focus Frame"},
+		{key = "Pet", name = L["Pet Frame"] or "Pet Frame"}
 	}
 	
 	for _, unitFrame in ipairs(unitFrames) do

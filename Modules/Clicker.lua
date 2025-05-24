@@ -1,13 +1,22 @@
 local _, ns = ...
 
+-- Get localization table
+local L = ns.L or {}
+
+-- Ensure critical strings exist with fallbacks
+L["Clicker"] = L["Clicker"] or "Clicker"
+L["Enhanced click functionality with customizable textures for unit frames"] = L["Enhanced click functionality with customizable textures for unit frames"] or "Enhanced click functionality with customizable textures for unit frames"
+L["General Settings"] = L["General Settings"] or "General Settings"
+L["Clicker Settings"] = L["Clicker Settings"] or "Clicker Settings"
+
 local Clicker = {}
 Clicker.__index = Clicker
 ns.Clicker = Clicker
 
 -- Module metadata
-Clicker.name = "Clicker"
+Clicker.name = L["Clicker"] or "Clicker"
 Clicker.id = "clicker"
-Clicker.description = "Enhanced click functionality with customizable textures for unit frames"
+Clicker.description = L["Enhanced click functionality with customizable textures for unit frames"] or "Enhanced click functionality with customizable textures for unit frames"
 Clicker.version = "2.0"
 
 -- Constants
@@ -508,7 +517,7 @@ function UIManager:CreateSettings(parent, enableCheckbox)
 	-- Settings header
 	local settingsHeader = content:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
 	settingsHeader:SetPoint("TOPLEFT", enableCheckbox, "BOTTOMLEFT", 0, -25)
-	settingsHeader:SetText("Clicker Settings")
+	settingsHeader:SetText(L["Clicker Settings"] or "Clicker Settings")
 	
 	-- Create sections
 	self:CreateGeneralSettings(content, settingsHeader)
@@ -547,10 +556,10 @@ function UIManager:CreateGeneralSettings(parent, anchor)
 	-- Section header
 	local sectionHeader = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	sectionHeader:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
-	sectionHeader:SetText("General Settings")
+	sectionHeader:SetText(L["General Settings"] or "General Settings")
 	
 	-- Custom size checkbox
-	local customSizeCheckbox = Cell.CreateCheckButton(parent, "Use Custom Size", function(checked)
+	local customSizeCheckbox = Cell.CreateCheckButton(parent, L["Use Custom Size"] or "Use Custom Size", function(checked)
 		self.settingsManager:Set("useCustomSize", checked)
 		self:UpdateWidgetStates()
 		self:TriggerLayoutUpdate()
@@ -561,7 +570,7 @@ function UIManager:CreateGeneralSettings(parent, anchor)
 	-- Width slider
 	local widthLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	widthLabel:SetPoint("TOPLEFT", customSizeCheckbox, "BOTTOMLEFT", 0, -20)
-	widthLabel:SetText("Width")
+	widthLabel:SetText(L["Width"] or "Width")
 	
 	local widthValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	widthValue:SetPoint("LEFT", widthLabel, "RIGHT", 50, 0)
@@ -581,7 +590,7 @@ function UIManager:CreateGeneralSettings(parent, anchor)
 	-- Height slider
 	local heightLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	heightLabel:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -25)
-	heightLabel:SetText("Height")
+	heightLabel:SetText(L["Height"] or "Height")
 	
 	local heightValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 	heightValue:SetPoint("LEFT", heightLabel, "RIGHT", 45, 0)
@@ -819,7 +828,7 @@ function UIManager:TriggerLayoutUpdate()
 	C_Timer.After(0.1, function()
 		if ns.Clicker and ns.Clicker.layoutManager then
 			ns.Clicker.layoutManager:UpdateLayout()
-end
+		end
 	end)
 end
 
