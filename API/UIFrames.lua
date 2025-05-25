@@ -1,5 +1,16 @@
 local _, ns = ...
 
+-- Global declarations for WoW API functions
+---@diagnostic disable: undefined-global
+local UnitClass = UnitClass
+local UnitHealth = UnitHealth
+local UnitHealthMax = UnitHealthMax
+local UnitPower = UnitPower
+local UnitPowerMax = UnitPowerMax
+local CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS
+local CellAdditionsDB = CellAdditionsDB
+---@diagnostic enable: undefined-global
+
 -- Create UI frames API
 local UIFrames = {}
 ns.UIFrames = UIFrames
@@ -19,8 +30,11 @@ function UIFrames.CreateSoloFrame(parent)
     end
 
     -- Ensure CellAdditionsDB exists
+    ---@diagnostic disable-next-line: undefined-global
     CellAdditionsDB = CellAdditionsDB or {}
+    ---@diagnostic disable-next-line: undefined-global
     CellAdditionsDB.UISettings = CellAdditionsDB.UISettings or {}
+    ---@diagnostic disable-next-line: undefined-global
     CellAdditionsDB.framePositions = CellAdditionsDB.framePositions or {}
 
     -- Create the frame
@@ -33,6 +47,7 @@ function UIFrames.CreateSoloFrame(parent)
     soloFrame:SetMovable(true)
     soloFrame:RegisterForDrag("LeftButton")
     soloFrame:SetScript("OnDragStart", function(dragFrame)
+        ---@diagnostic disable-next-line: undefined-global
         if not CellAdditionsDB.UISettings.locked then
             dragFrame:StartMoving()
         end
@@ -41,6 +56,7 @@ function UIFrames.CreateSoloFrame(parent)
         dragFrame:StopMovingOrSizing()
         -- Save position
         local point, _, relativePoint, xOfs, yOfs = dragFrame:GetPoint()
+        ---@diagnostic disable-next-line: undefined-global
         CellAdditionsDB.framePositions.soloFrame = {
             point = point,
             relativePoint = relativePoint,
@@ -131,7 +147,9 @@ function UIFrames.CreateSoloFrame(parent)
     soloFrame:Update()
 
     -- Restore position if saved
+    ---@diagnostic disable-next-line: undefined-global
     if CellAdditionsDB.framePositions.soloFrame then
+        ---@diagnostic disable-next-line: undefined-global
         local pos = CellAdditionsDB.framePositions.soloFrame
         soloFrame:ClearAllPoints()
         soloFrame:SetPoint(pos.point, UIParent, pos.relativePoint, pos.xOfs, pos.yOfs)
@@ -216,7 +234,9 @@ end
 -- Initialize function to create all UI frames
 function UIFrames.Initialize()
     -- Ensure CellAdditionsDB exists
+    ---@diagnostic disable-next-line: undefined-global
     CellAdditionsDB = CellAdditionsDB or {}
+    ---@diagnostic disable-next-line: undefined-global
     CellAdditionsDB.UISettings = CellAdditionsDB.UISettings or {}
 
     if ns.Debug then
@@ -224,6 +244,7 @@ function UIFrames.Initialize()
     end
 
     -- Create solo frame if enabled
+    ---@diagnostic disable-next-line: undefined-global
     if CellAdditionsDB.UISettings.soloFrame then
         UIFrames.CreateSoloFrame()
         if ns.Debug then
