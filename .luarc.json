@@ -42,5 +42,9 @@
   },
   "telemetry": {
     "enable": false
-  }
+  },
+    "diagnostics.disable": [
+        "undefined-global",
+        "undefined-field"
+    ]
 }
