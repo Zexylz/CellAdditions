@@ -34,8 +34,13 @@ globals = {
 -- Allow unused function arguments (e.g. self)
 unused_args = false
 
+-- Disable line-length and whitespace warnings for translation files
 ["Locales/.*%.lua"] = {
-  ignore = { "line is too long" }
+  ignore = {
+    "line is too long",
+    "trailing whitespace",
+    "line contains only whitespace"
+  }
 }
 
 -- Exclude third-party stubs and language server files
