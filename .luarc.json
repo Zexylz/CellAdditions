@@ -34,7 +34,9 @@
       "print",
       "IsAddOnLoaded",
       "hooksecurefunc",
-      "GetAddOnMetadata"
+      "GetAddOnMetadata",
+      "addonName",
+      "self"
     ]
   },
   "telemetry": {
