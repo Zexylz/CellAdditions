@@ -1,7 +1,9 @@
 -- CellAdditions Russian Localization
 -- Русская локализация
 
-if not LOCALE_ruRU then return end
+if not LOCALE_ruRU then
+  return
+end
 
 local _, ns = ...
 local L = ns.L
@@ -22,7 +24,8 @@ L["No settings available for this feature"] = "Настройки для это�
 
 -- Clicker Module
 L["Clicker"] = "Кликер"
-L["Enhanced click functionality with customizable textures for unit frames"] = "Улучшенная функция клика с настраиваемыми текстурами для фреймов юнитов"
+L["Enhanced click functionality with customizable textures for unit frames"] =
+  "Улучшенная функция клика с настраиваемыми текстурами для фреймов юнитов"
 L["Clicker Settings"] = "Настройки кликера"
 L["General Settings"] = "Общие настройки"
 L["Position Settings"] = "Настройки позиции"
@@ -39,7 +42,8 @@ L["Enable Texture Overlay"] = "Включить наложение тексту�
 L["Texture"] = "Текстура"
 L["No Texture"] = "Без текстуры"
 L["Refresh Texture List"] = "Обновить список текстур"
-L["Scans the texture folder for new files"] = "Сканирует папку текстур на наличие новых файлов"
+L["Scans the texture folder for new files"] =
+  "Сканирует папку текстур на наличие новых файлов"
 L["Texture Alpha"] = "Прозрачность текстуры"
 L["Show Debug Overlay"] = "Показать отладочное наложение"
 
@@ -53,7 +57,8 @@ L["Clicker module disabled"] = "Модуль кликера отключен"
 
 -- Shadow Module
 L["Shadow"] = "Тень"
-L["Add dynamic shadow effects to Cell unit frames and bars"] = "Добавляет динамические эффекты тени к фреймам юнитов и полосам Cell"
+L["Add dynamic shadow effects to Cell unit frames and bars"] =
+  "Добавляет динамические эффекты тени к фреймам юнитов и полосам Cell"
 L["Shadow Settings"] = "Настройки тени"
 L["Cell"] = "Cell"
 L["Cell - Unit Frames"] = "Cell - Фреймы юнитов"
@@ -114,4 +119,4 @@ L["Spell Request"] = "Запрос заклинания"
 L["Dispel Request"] = "Запрос рассеивания"
 L["Quick Assist"] = "Быстрая помощь"
 L["Quick Cast"] = "Быстрое применение"
-L["Utilities"] = "Утилиты" 
+L["Utilities"] = "Утилиты"

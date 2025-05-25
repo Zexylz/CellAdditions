@@ -1,7 +1,9 @@
 -- CellAdditions French Localization
 -- Localisation Française
 
-if not LOCALE_frFR then return end
+if not LOCALE_frFR then
+  return
+end
 
 local _, ns = ...
 local L = ns.L
@@ -22,7 +24,8 @@ L["No settings available for this feature"] = "Aucun paramètre disponible pour 
 
 -- Clicker Module
 L["Clicker"] = "Clicker"
-L["Enhanced click functionality with customizable textures for unit frames"] = "Fonctionnalité de clic améliorée avec des textures personnalisables pour les cadres d'unité"
+L["Enhanced click functionality with customizable textures for unit frames"] =
+  "Fonctionnalité de clic améliorée avec des textures personnalisables pour les cadres d'unité"
 L["Clicker Settings"] = "Paramètres du Clicker"
 L["General Settings"] = "Paramètres Généraux"
 L["Position Settings"] = "Paramètres de Position"
@@ -53,7 +56,8 @@ L["Clicker module disabled"] = "Module Clicker désactivé"
 
 -- Shadow Module
 L["Shadow"] = "Ombre"
-L["Add dynamic shadow effects to Cell unit frames and bars"] = "Ajouter des effets d'ombre dynamiques aux cadres d'unité et barres de Cell"
+L["Add dynamic shadow effects to Cell unit frames and bars"] =
+  "Ajouter des effets d'ombre dynamiques aux cadres d'unité et barres de Cell"
 L["Shadow Settings"] = "Paramètres d'Ombre"
 L["Cell"] = "Cell"
 L["Cell - Unit Frames"] = "Cell - Cadres d'Unité"
@@ -114,4 +118,4 @@ L["Spell Request"] = "Demande de Sort"
 L["Dispel Request"] = "Demande de Dissipation"
 L["Quick Assist"] = "Assistance Rapide"
 L["Quick Cast"] = "Lancement Rapide"
-L["Utilities"] = "Utilitaires" 
+L["Utilities"] = "Utilitaires"
