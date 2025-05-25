@@ -1,5 +1,4 @@
 local addonName, ns = ...
-local version = GetAddOnMetadata(addonName, "Version")
 
 local CellAdditions = {}
 CellAdditions.__index = CellAdditions
