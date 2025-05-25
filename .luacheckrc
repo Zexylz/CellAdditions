@@ -4,6 +4,7 @@ std = "lua51"
 -- Declare known globals used by the addon
 globals = {
   "Cell",
+  "CellAdditionsDB",
   "UnitButton",
   "CreateFrame",
   "GetTime",
@@ -15,9 +16,20 @@ globals = {
   "hooksecurefunc",
   "GetAddOnMetadata",
   "LibStub",
+  "wipe",
   "SLASH_.*",
   "BINDING_HEADER_.*",
-  "BINDING_NAME_.*"
+  "BINDING_NAME_.*",
+  "UnitHealth",
+  "UnitHealthMax",
+  "UnitPower",
+  "UnitPowerMax",
+  "UnitClass",
+  "CLASS_ICON_TCOORDS",
+  -- Locales
+  "LOCALE_deDE", "LOCALE_enUS", "LOCALE_esES", "LOCALE_frFR",
+  "LOCALE_itIT", "LOCALE_koKR", "LOCALE_ptBR", "LOCALE_ruRU",
+  "LOCALE_zhCN", "LOCALE_zhTW"
 }
 
 -- Allow unused function arguments (e.g. 'self' in method definitions)
