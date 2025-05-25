@@ -1,7 +1,7 @@
--- Use Lua 5.1 standard environment
+-- Use Lua 5.1 standard (WoW uses Lua 5.1)
 std = "lua51"
 
--- Declare known globals used by the addon
+-- Globals used in WoW and your addon
 globals = {
   "Cell",
   "CellAdditionsDB",
@@ -26,16 +26,16 @@ globals = {
   "UnitPowerMax",
   "UnitClass",
   "CLASS_ICON_TCOORDS",
-  -- Locales
   "LOCALE_deDE", "LOCALE_enUS", "LOCALE_esES", "LOCALE_frFR",
   "LOCALE_itIT", "LOCALE_koKR", "LOCALE_ptBR", "LOCALE_ruRU",
   "LOCALE_zhCN", "LOCALE_zhTW"
 }
 
--- Allow unused function arguments (e.g. 'self' in method definitions)
+-- Allow unused function arguments (e.g. self)
 unused_args = false
 
--- Ignore WoW API stub files cloned from external repo
+-- Exclude third-party stubs and language server files
 exclude_files = {
-  "WoWStubs/**"
+  "WoWStubs/**",
+  "lua-language-server/**"
 }
