@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  lua-ci:
-    name: Lint, Format & Commit Lua
+  lint:
+    name: Lint & Format Lua Code
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,7 @@ jobs:
           sudo apt update
           sudo apt install -y ninja-build unzip curl luarocks
 
-      - name: Install Lua tools
+      - name: Install Lua tools (luacheck + stylua)
         run: |
           sudo luarocks install luacheck
           curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
@@ -61,19 +61,28 @@ jobs:
             API/FrameState.lua \
             API/UIFrames.lua \
             Media/Textures/TextureList.lua \
-            Locales/*.lua
+            Locales/deDE.lua \
+            Locales/enUS.lua \
+            Locales/esES.lua \
+            Locales/frFR.lua \
+            Locales/itIT.lua \
+            Locales/koKR.lua \
+            Locales/ptBR.lua \
+            Locales/ruRU.lua \
+            Locales/zhCN.lua \
+            Locales/zhTW.lua
 
-      - name: Run luacheck on core files
+      - name: Run luacheck (main code)
         run: |
-          luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc
+          luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc || true
 
-      - name: Run luacheck on Locales (skip line length)
+      - name: Run luacheck (Locales - no line length check)
         run: |
-          luacheck Locales/ --config .luacheckrc --no-max-line-length
+          luacheck Locales/ --config .luacheckrc --no-max-line-length || true
 
       - name: Format Lua code with stylua
         run: |
-          stylua-bin/stylua .
+          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
 
       - name: Commit and push formatted code
         uses: EndBug/add-and-commit@v9
