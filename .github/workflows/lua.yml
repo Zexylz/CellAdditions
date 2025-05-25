@@ -85,11 +85,12 @@ jobs:
           stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
 
       - name: Commit and push formatted code
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v9.1.4
         with:
           author_name: github-actions
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
+          force: true
           add: "."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
