@@ -22,7 +22,7 @@ jobs:
       
       - name: Clone WoW API stubs
         run: |
-          git clone https://github.com/Ellypse/IntelliJ-IDEA-Lua-IDE-WoW-API.git WoWStubs
+          git clone --depth=1 https://github.com/Ketho/vscode-wow-api.git WoWStubs
 
       - name: Cache Lua Language Server
         uses: actions/cache@v4
@@ -48,4 +48,15 @@ jobs:
             Modules/Clicker.lua \
             Modules/Shadow.lua \
             API/FrameState.lua \
-            API/UIFrames.lua
+            API/UIFrames.lua \
+            Media/Textures/TextureList.lua \
+            Locales/deDE.lua \
+            Locales/enUS.lua \
+            Locales/esES.lua \
+            Locales/frFR.lua \
+            Locales/itIT.lua \
+            Locales/koKR.lua \
+            Locales/ptBR.lua \
+            Locales/ruRU.lua \
+            Locales/zhCN.lua \
+            Locales/zhTW.lua
