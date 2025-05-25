@@ -5,6 +5,7 @@ quote_style = "AutoPreferDouble"
 call_parentheses = "Always"
 line_endings = "Unix"
 collapse_simple_statement = "FunctionOnly"
+syntax = "Lua51"
 
 [sort_requires]
 enabled = true

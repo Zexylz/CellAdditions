@@ -77,9 +77,9 @@ jobs:
         run: |
           luacheck Locales/ --config .luacheckrc --no-max-line-length || true
 
-      - name: Auto-format Lua code with stylua
+      - name: Format Lua code with stylua
         run: |
-          stylua-bin/stylua .
+          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
 
       - name: Commit formatted code
         uses: EndBug/add-and-commit@v9.1.4
