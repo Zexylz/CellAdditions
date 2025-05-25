@@ -18,6 +18,8 @@ globals = {
   "SLASH_.*",
   "BINDING_HEADER_.*",
   "BINDING_NAME_.*",
+  "addonName",
+  "self",
 }
 
 exclude_files = {
