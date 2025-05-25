@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Run Lua Language Server
+    name: Run Lua Language Server for WoW Addon
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,18 @@ jobs:
           sudo apt update
           sudo apt install -y ninja-build unzip curl
 
+      - name: Clone WoW API stubs
+        run: |
+          git clone https://github.com/SaviorXTanren/wowstubs.git WoWStubs
+
+      - name: Cache Lua Language Server
+        uses: actions/cache@v4
+        with:
+          path: lua-language-server
+          key: lua-language-server-v3
+
       - name: Set up Lua Language Server
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/LuaLS/lua-language-server.git
           cd lua-language-server
@@ -32,9 +43,4 @@ jobs:
 
       - name: Run Lua Language Server check
         run: |
-          ./lua-language-server/bin/lua-language-server --check \
-            Core.lua \
-            Modules/Clicker.lua \
-            Modules/Shadow.lua \
-            API/FrameState.lua \
-            API/UIFrames.lua
+          ./lua-language-server/bin/lua-language-server --check .
