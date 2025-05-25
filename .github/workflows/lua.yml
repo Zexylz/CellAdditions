@@ -71,7 +71,7 @@ jobs:
 
       - name: Run luacheck
         run: |
-          luacheck . --config .luacheckrc
+          luacheck Core.lua API/ Modules/ Locales/ Media/ --config .luacheckrc
 
       - name: Auto-format Lua code with stylua
         run: |
