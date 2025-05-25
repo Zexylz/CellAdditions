@@ -76,3 +76,10 @@ jobs:
       - name: Auto-format Lua code with stylua
         run: |
           stylua-bin/stylua .
+
+      - name: Commit formatted code
+        uses: EndBug/add-and-commit@v9.1.4
+        with:
+          author_name: github-actions
+          author_email: github-actions@github.com
+          message: "style: auto-format code with stylua"
