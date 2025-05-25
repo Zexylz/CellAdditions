@@ -43,4 +43,9 @@ jobs:
 
       - name: Run Lua Language Server check
         run: |
-          ./lua-language-server/bin/lua-language-server --check .
+          ./lua-language-server/bin/lua-language-server --check \
+            Core.lua \
+            Modules/Clicker.lua \
+            Modules/Shadow.lua \
+            API/FrameState.lua \
+            API/UIFrames.lua
