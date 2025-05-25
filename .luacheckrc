@@ -1,6 +1,7 @@
 std = "lua51"
 
 globals = {
+  "ChatFrame1",
   "Cell",
   "CellAdditionsDB",
   "UnitButton",
