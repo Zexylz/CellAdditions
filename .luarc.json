@@ -36,7 +36,8 @@
       "hooksecurefunc",
       "GetAddOnMetadata",
       "addonName",
-      "self"
+      "self",
+            "ChatFrame1"
     ]
   },
   "telemetry": {
