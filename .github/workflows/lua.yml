@@ -41,15 +41,16 @@ jobs:
           key: lua-language-server-v3
 
       - name: Set up Lua Language Server
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/LuaLS/lua-language-server.git
-          cd lua-language-server
-          git submodule update --init --recursive
-          cd 3rd/luamake
-          ./compile/install.sh
-          cd ../..
-          ./3rd/luamake/luamake rebuild
+          if [ ! -d "lua-language-server" ]; then
+            git clone https://github.com/LuaLS/lua-language-server.git
+            cd lua-language-server
+            git submodule update --init --recursive
+            cd 3rd/luamake
+            ./compile/install.sh
+            cd ../..
+            ./3rd/luamake/luamake rebuild
+          fi
 
       - name: Run Lua Language Server check
         run: |
