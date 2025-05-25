@@ -90,7 +90,7 @@ jobs:
           author_name: github-actions
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
-          force: true
           add: "."
+          pull: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
