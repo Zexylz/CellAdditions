@@ -1,4 +1,4 @@
-name: Lua Linting
+name: Lua CI
 
 on:
   push:
@@ -8,18 +8,25 @@ on:
 
 jobs:
   lint:
-    name: Run Lua Language Server for WoW Addon
+    name: Lint & Format Lua Code
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y ninja-build unzip curl
-      
+          sudo apt install -y ninja-build unzip curl luarocks
+
+      - name: Install Lua tools (luacheck + stylua)
+        run: |
+          sudo luarocks install luacheck
+          curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
+          unzip stylua.zip -d stylua-bin
+          chmod +x stylua-bin/stylua
+
       - name: Clone WoW API stubs
         run: |
           git clone --depth=1 https://github.com/Ketho/vscode-wow-api.git WoWStubs
@@ -60,3 +67,11 @@ jobs:
             Locales/ruRU.lua \
             Locales/zhCN.lua \
             Locales/zhTW.lua
+
+      - name: Run luacheck
+        run: |
+          luacheck . --config .luacheckrc
+
+      - name: Run stylua
+        run: |
+          stylua-bin/stylua . --check
