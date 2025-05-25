@@ -1,4 +1,4 @@
-local addonName, ns = ...
+local _, ns = ...
 local Cell = ns.Cell
 
 -- Create an API namespace for frame state detection
@@ -10,7 +10,7 @@ ns.API.FrameState = FrameState
 local currentLayout = nil
 
 -- Function to refresh and get the current layout information
-function FrameState:GetCurrentLayout()
+function FrameState.GetCurrentLayout()
     -- Get current layout information
     if Cell and Cell.vars.db then
         -- Check current active layout
@@ -23,12 +23,12 @@ function FrameState:GetCurrentLayout()
 end
 
 -- Function to check if a frame type is enabled in Cell Unit Frames
-function FrameState:IsFrameTypeEnabled(frameType)
+function FrameState.IsFrameTypeEnabled(frameType)
     -- Default to enabled
     local isEnabled = true
     
     -- Map frameType to unit key in CUF_DB if it's one of our predefined types
-    local unitKey = nil
+    local unitKey
     if frameType == "TargetTarget" then unitKey = "targettarget"
     elseif frameType == "Pet" then unitKey = "pet"
     elseif frameType == "Focus" then unitKey = "focus"
@@ -61,13 +61,12 @@ function FrameState:IsFrameTypeEnabled(frameType)
 end
 
 -- Function to get all available frame types from the current layout
-function FrameState:GetAvailableFrameTypes()
+function FrameState.GetAvailableFrameTypes()
     local availableTypes = {}
     
     -- Get the layout table safely
-    local layout = nil
     if _G.CUF and _G.CUF.DB and _G.CUF.DB.CurrentLayoutTable then
-        layout = _G.CUF.DB.CurrentLayoutTable()
+        local layout = _G.CUF.DB.CurrentLayoutTable()
         
         -- If we have a layout, get all unit keys
         if layout then
@@ -91,19 +90,19 @@ function FrameState:GetAvailableFrameTypes()
 end
 
 -- Function to get all frame types' states
-function FrameState:GetAllFrameStates()
-    local frameTypes = self:GetAvailableFrameTypes()
+function FrameState.GetAllFrameStates()
+    local frameTypes = FrameState.GetAvailableFrameTypes()
     local states = {}
     
     for _, frameType in ipairs(frameTypes) do
-        states[frameType] = self:IsFrameTypeEnabled(frameType)
+        states[frameType] = FrameState.IsFrameTypeEnabled(frameType)
     end
     
     return states
 end
 
 -- Function to register for Cell callbacks
-function FrameState:RegisterCallbacks(callbackFunc)
+function FrameState.RegisterCallbacks(callbackFunc)
     if not Cell then return false end
     
     -- Register for layout changes

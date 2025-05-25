@@ -286,7 +286,7 @@ function FrameManager:CreateClickerFrame(unitButton)
 	end
 	
 	-- Create debug overlay
-	local debugOverlay = self:CreateDebugOverlay(hitbox, settings.debug)
+	local debugOverlay = self:CreateDebugOverlay(unitButton, settings.debug)
 	
 	-- Configure secure attributes
 	self:ConfigureSecureAttributes(hitbox, unitButton)
@@ -321,9 +321,15 @@ function FrameManager:ConfigureFrameLayout(frame, unitButton, settings)
 	end
 end
 
-function FrameManager:CreateDebugOverlay(parent, debugEnabled)
-	local overlay = parent:CreateTexture(nil, "BACKGROUND", nil, -8)
-	overlay:SetAllPoints(parent)
+function FrameManager:CreateDebugOverlay(unitButton, debugEnabled)
+	-- Create debug overlay that matches the healthbar size
+	local healthBar = unitButton.widgets and unitButton.widgets.healthBar
+	if not healthBar then
+		return nil
+	end
+	
+	local overlay = healthBar:CreateTexture(nil, "OVERLAY", nil, 7)
+	overlay:SetAllPoints(healthBar)
 	overlay:SetTexture("Interface\\Buttons\\WHITE8X8")
 	overlay:SetVertexColor(0, 1, 0, 0.3)
 	overlay:SetShown(debugEnabled)

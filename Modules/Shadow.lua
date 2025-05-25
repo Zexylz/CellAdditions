@@ -401,8 +401,8 @@ end
 function ShadowManager:HideAllShadows()
 	for frame, shadowObj in pairs(self.shadowObjects) do
 		shadowObj:Hide()
+            end
         end
-    end
     
 function ShadowManager:DestroyAllShadows()
 	for frame, shadowObj in pairs(self.shadowObjects) do
@@ -501,18 +501,18 @@ function FrameScanner:ScanGroupFrames(frameType, patterns)
 						local frame = _G[frameName]
 						if Utils:IsFrameValid(frame) then
 							self.shadowManager:CreateShadow(frame, frameType)
-                        end
-                    end
-                end
+        end
+    end
+end
             end
         else
 			-- Direct frame name
 			local frame = _G[pattern]
 			if Utils:IsFrameValid(frame) then
 				self.shadowManager:CreateShadow(frame, frameType)
+            end
         end
     end
-end
 end
 
 function FrameScanner:FindChildFrame(parent, namePattern)
@@ -634,7 +634,7 @@ function UIManager:CreateGeneralSettings(parent, settings)
 end
 
 function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
-	local Cell = ns.Cell or _G.Cell
+    local Cell = ns.Cell or _G.Cell
 	
 	-- Section header
 	local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
@@ -740,11 +740,11 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 end
 
 function UIManager:TriggerShadowUpdate()
-                    C_Timer.After(0.1, function()
+            C_Timer.After(0.1, function()
 		if ns.Shadow and ns.Shadow.shadowManager then
 			ns.Shadow.shadowManager:UpdateAllShadows()
-                end
-            end)
+        end
+    end)
 end
 
 -- ============================================================================
@@ -789,7 +789,7 @@ function Shadow:Initialize()
 	Utils:Debug("Shadow module initialized successfully")
 	
 	-- Initial scan
-            C_Timer.After(1, function()
+    C_Timer.After(1, function()
 		self:Update()
 	end)
 end

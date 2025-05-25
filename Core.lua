@@ -16,7 +16,7 @@ L["Features"] = L["Features"] or "Features"
 L["Settings"] = L["Settings"] or "Settings"
 L["Enable"] = L["Enable"] or "Enable"
 
-local DEBUG_ENABLED = false
+local DEBUG_ENABLED = true
 local ADDON_VERSION = "1.0"
 local FRAME_STRATA = "HIGH"
 local ACCENT_COLOR_ALPHA = 0.7
@@ -950,9 +950,6 @@ function CellAdditions:Initialize()
 	-- Integrate with Cell
 	self.cellIntegration:ReplaceUtilitiesButton()
 	self.cellIntegration:RegisterCallbacks()
-	
-	-- Setup AceConfig if available
-	self:SetupAceConfig()
 	
 	-- Hook the options frame to capture original dimensions when it's first shown
 	if Cell.frames.optionsFrame then
