@@ -1,0 +1,2 @@
+# Ignore WoW API stubs used only in CI
+WoWStubs/
