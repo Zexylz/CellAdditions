@@ -34,6 +34,10 @@ globals = {
 -- Allow unused function arguments (e.g. self)
 unused_args = false
 
+["Locales/.*%.lua"] = {
+  ignore = { "line is too long" }
+}
+
 -- Exclude third-party stubs and language server files
 exclude_files = {
   "WoWStubs/**",
