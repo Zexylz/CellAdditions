@@ -1,4 +1,4 @@
-name: Lua Linting
+name: Lua CI
 
 on:
   push:
@@ -8,33 +8,71 @@ on:
 
 jobs:
   lint:
-    name: Run Lua Language Server
+    name: Lint & Format Lua Code
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y ninja-build unzip curl
+          sudo apt install -y ninja-build unzip curl luarocks
+
+      - name: Install Lua tools (luacheck + stylua)
+        run: |
+          sudo luarocks install luacheck
+          curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
+          unzip stylua.zip -d stylua-bin
+          chmod +x stylua-bin/stylua
+
+      - name: Clone WoW API stubs
+        run: |
+          git clone --depth=1 https://github.com/Ketho/vscode-wow-api.git WoWStubs
+
+      - name: Cache Lua Language Server
+        uses: actions/cache@v4
+        with:
+          path: lua-language-server
+          key: lua-language-server-v3
 
       - name: Set up Lua Language Server
         run: |
-          git clone https://github.com/LuaLS/lua-language-server.git
-          cd lua-language-server
-          git submodule update --init --recursive
-          cd 3rd/luamake
-          ./compile/install.sh
-          cd ../..
-          ./3rd/luamake/luamake rebuild
+          if [ ! -d "lua-language-server" ]; then
+            git clone https://github.com/LuaLS/lua-language-server.git
+            cd lua-language-server
+            git submodule update --init --recursive
+            cd 3rd/luamake
+            ./compile/install.sh
+            cd ../..
+            ./3rd/luamake/luamake rebuild
+          fi
 
       - name: Run Lua Language Server check
         run: |
           ./lua-language-server/bin/lua-language-server --check \
-            cell-additions.lua \
+            Core.lua \
             Modules/Clicker.lua \
             Modules/Shadow.lua \
             API/FrameState.lua \
-            API/UIFrames.lua
+            API/UIFrames.lua \
+            Media/Textures/TextureList.lua \
+            Locales/deDE.lua \
+            Locales/enUS.lua \
+            Locales/esES.lua \
+            Locales/frFR.lua \
+            Locales/itIT.lua \
+            Locales/koKR.lua \
+            Locales/ptBR.lua \
+            Locales/ruRU.lua \
+            Locales/zhCN.lua \
+            Locales/zhTW.lua
+
+      - name: Run luacheck
+        run: |
+          luacheck . --config .luacheckrc
+
+      - name: Auto-format Lua code with stylua
+        run: |
+          stylua-bin/stylua .
