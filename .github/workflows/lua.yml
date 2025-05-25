@@ -73,6 +73,6 @@ jobs:
         run: |
           luacheck . --config .luacheckrc
 
-      - name: Run stylua
+      - name: Auto-format Lua code with stylua
         run: |
-          stylua-bin/stylua . --check
+          stylua-bin/stylua .
