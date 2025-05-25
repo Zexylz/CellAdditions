@@ -1,25 +1,40 @@
 {
+  "name": "CellAdditions",
   "workspace": {
     "library": [
-      "./"  
+      "./",
+      "WoWStubs"
     ],
     "ignoreDir": [
       ".github"
-    ]
+    ],
+    "checkThirdParty": false
   },
   "runtime": {
-    "version": "Lua 5.1", 
+    "version": "Lua 5.1",
     "path": [
       "?.lua",
       "?/init.lua"
-    ]
+    ],
+    "special": {
+      "require": "require"
+    }
   },
   "diagnostics": {
+    "enable": true,
     "globals": [
       "Cell",
       "UnitButton",
       "CreateFrame",
-      "GetTime"
+      "GetTime",
+      "C_Timer",
+      "C_AddOns",
+      "UIParent",
+      "DEFAULT_CHAT_FRAME",
+      "print",
+      "IsAddOnLoaded",
+      "hooksecurefunc",
+      "GetAddOnMetadata"
     ]
   },
   "telemetry": {
