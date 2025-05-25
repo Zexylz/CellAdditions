@@ -2,13 +2,6 @@ local _, ns = ...
 
 -- Global declarations for WoW API functions
 ---@diagnostic disable: undefined-global
-local UnitClass = UnitClass
-local UnitHealth = UnitHealth
-local UnitHealthMax = UnitHealthMax
-local UnitPower = UnitPower
-local UnitPowerMax = UnitPowerMax
-local CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS
-local CellAdditionsDB = CellAdditionsDB
 ---@diagnostic enable: undefined-global
 
 -- Create UI frames API
@@ -95,9 +88,11 @@ function UIFrames.CreateSoloFrame(parent)
     classIcon:SetPoint("LEFT", soloFrame, "LEFT", 5, 0)
 
     -- Set icon based on player class
+    ---@diagnostic disable-next-line: undefined-global
     local classFile = select(2, UnitClass("player"))
     if classFile then
         classIcon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        ---@diagnostic disable-next-line: undefined-global
         classIcon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFile]))
     end
 
@@ -110,7 +105,9 @@ function UIFrames.CreateSoloFrame(parent)
     -- Update function for live data
     soloFrame.Update = function(self)
         -- Update health
+        ---@diagnostic disable-next-line: undefined-global
         local health = UnitHealth("player")
+        ---@diagnostic disable-next-line: undefined-global
         local maxHealth = UnitHealthMax("player")
         if maxHealth > 0 then
             local percent = health / maxHealth * 100
@@ -129,7 +126,9 @@ function UIFrames.CreateSoloFrame(parent)
         end
 
         -- Update power
+        ---@diagnostic disable-next-line: undefined-global
         local power = UnitPower("player")
+        ---@diagnostic disable-next-line: undefined-global
         local maxPower = UnitPowerMax("player")
         if maxPower > 0 then
             self.powerBar:SetValue(power / maxPower * 100)
@@ -254,4 +253,4 @@ function UIFrames.Initialize()
 end
 
 -- Return the API
-return UIFrames 
+return UIFrames

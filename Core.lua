@@ -1,4 +1,11 @@
-local addonName, ns = ...
+local _, ns = ...
+
+-- Global declarations for WoW API functions
+---@diagnostic disable: undefined-global
+local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
+local ChatFrame1 = ChatFrame1
+local wipe = wipe
+---@diagnostic enable: undefined-global
 
 local CellAdditions = {}
 CellAdditions.__index = CellAdditions
@@ -25,43 +32,43 @@ local ACCENT_COLOR_ALPHA = 0.7
 local DEFAULT_SETTINGS = {
 	enabled = true,
 	shadowEnabled = true,
-			clickerEnabled = true,
+	clickerEnabled = true,
 	debug = true,
-			currentTab = "raidTools",
-			shadowSize = 4,
-			shadowColor = { r = 0, g = 0, b = 0, a = 1 },
-			shadowBars = {
-				healthBar = false,
-				powerBar = false,
-			},
-			useStandaloneCellShadow = false,
-			usePartyButtonShadow = false,
-			useRaidButtonShadow = false,
-			shadowQuality = 3,
-			shadowOffsetX = 0,
-			shadowOffsetY = 0,
-			shadowConfig = {
-				enableShadow = true,
-				shadowSize = 5,
-				partyFrames = true,
-				raidFrames = false,
-				unitFrames = {
-					Player = true,
-					Target = false,
-					TargetTarget = false,
-					Focus = false,
-					Pet = false,
-				}
-			}
+	currentTab = "raidTools",
+	shadowSize = 4,
+	shadowColor = { r = 0, g = 0, b = 0, a = 1 },
+	shadowBars = {
+		healthBar = false,
+		powerBar = false,
+	},
+	useStandaloneCellShadow = false,
+	usePartyButtonShadow = false,
+	useRaidButtonShadow = false,
+	shadowQuality = 3,
+	shadowOffsetX = 0,
+	shadowOffsetY = 0,
+	shadowConfig = {
+		enableShadow = true,
+		shadowSize = 5,
+		partyFrames = true,
+		raidFrames = false,
+		unitFrames = {
+			Player = true,
+			Target = false,
+			TargetTarget = false,
+			Focus = false,
+			Pet = false,
 		}
-
+	}
+}
 
 local Utils = {}
 
-function Utils:Debug(msg)
+function Utils.Debug(msg)
 	if not DEBUG_ENABLED then return end
-	
+	---@diagnostic disable-next-line: undefined-global
 	if CellAdditionsDB and CellAdditionsDB.debug then
+		---@diagnostic disable-next-line: undefined-global
 		local frame = DEFAULT_CHAT_FRAME or ChatFrame1
 		if frame then
 			frame:AddMessage("|cff00ff00[CellAdditions]|r " .. tostring(msg))
@@ -75,7 +82,6 @@ function Utils:DeepCopy(orig, copies)
 	copies = copies or {}
 	local orig_type = type(orig)
 	local copy
-	
 	if orig_type == 'table' then
 		if copies[orig] then
 			copy = copies[orig]
@@ -90,7 +96,6 @@ function Utils:DeepCopy(orig, copies)
 	else
 		copy = orig
 	end
-	
 	return copy
 end
 
@@ -100,12 +105,11 @@ function Utils:MergeTable(dest, src)
 			self:MergeTable(dest[k], v)
 		else
 			dest[k] = v
-			end
 		end
 	end
+end
 
 ns.Utils = Utils
-
 
 local ModuleSystem = {}
 ModuleSystem.__index = ModuleSystem
@@ -119,20 +123,17 @@ end
 
 function ModuleSystem:RegisterModule(module)
 	if not module or not module.id or not module.name then
-		Utils:Debug("Failed to register module: missing required properties")
+		Utils.Debug("Failed to register module: missing required properties")
 		return false
 	end
-	
 	self.modules[module.id] = module
-	
 	-- Add to features list for UI
 	table.insert(self.features, {
 		name = module.name,
 		id = module.id,
 		description = module.description
 	})
-	
-	Utils:Debug("Registered module: " .. module.name)
+	Utils.Debug("Registered module: " .. module.name)
 	return true
 end
 
@@ -141,25 +142,22 @@ function ModuleSystem:GetModule(id)
 end
 
 function ModuleSystem:InitializeModules()
-	Utils:Debug("Initializing all modules...")
-	
+	Utils.Debug("Initializing all modules...")
 	for id, module in pairs(self.modules) do
 		if type(module.Initialize) == "function" then
 			local success, err = pcall(module.Initialize, module)
 			if not success then
-				Utils:Debug("Failed to initialize module " .. id .. ": " .. tostring(err))
+				Utils.Debug("Failed to initialize module " .. id .. ": " .. tostring(err))
 			else
-				Utils:Debug("Initialized module: " .. id)
+				Utils.Debug("Initialized module: " .. id)
+			end
 		end
 	end
-end
-
 	-- Sort features alphabetically
 	table.sort(self.features, function(a, b)
 		return a.name < b.name
 	end)
 end
-
 
 local DatabaseManager = {}
 DatabaseManager.__index = DatabaseManager
@@ -168,25 +166,29 @@ function DatabaseManager:New()
 	return setmetatable({}, self)
 end
 
-function DatabaseManager:Initialize()
+function DatabaseManager.Initialize()
+	---@diagnostic disable-next-line: undefined-global
 	if not CellAdditionsDB then
+		---@diagnostic disable-next-line: undefined-global
 		CellAdditionsDB = Utils:DeepCopy(DEFAULT_SETTINGS)
-		Utils:Debug("Created default database")
+		Utils.Debug("Created default database")
 	else
 		-- Ensure all fields exist
+		---@diagnostic disable-next-line: undefined-global
 		Utils:MergeTable(CellAdditionsDB, DEFAULT_SETTINGS)
-		Utils:Debug("Updated existing database with missing fields")
-		end
+		Utils.Debug("Updated existing database with missing fields")
 	end
+end
 
-function DatabaseManager:Get(key)
+function DatabaseManager.Get(key)
+	---@diagnostic disable-next-line: undefined-global
 	return CellAdditionsDB[key]
 end
 
-function DatabaseManager:Set(key, value)
+function DatabaseManager.Set(key, value)
+	---@diagnostic disable-next-line: undefined-global
 	CellAdditionsDB[key] = value
 end
-
 
 local UIManager = {}
 UIManager.__index = UIManager
@@ -278,10 +280,11 @@ function UIManager:LoadFeatureList(features)
 	local Cell = _G.Cell
 	if not Cell then return end
 	
-		-- Clear existing buttons
+			-- Clear existing buttons
 	for _, button in ipairs(self.buttons) do
-			button:Hide()
-		end
+		button:Hide()
+	end
+	---@diagnostic disable-next-line: undefined-global
 	wipe(self.buttons)
 
 	local scrollContent = self.frames.listFrame.scrollFrame.content
@@ -383,12 +386,14 @@ function UIManager:ShowFeatureSettings(index)
 				if module.SetEnabled then
 					module:SetEnabled(checked)
 				else
+					---@diagnostic disable-next-line: undefined-global
 					CellAdditionsDB.clickerEnabled = checked
 				end
 			end)
 			enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
 			
 			-- Set initial checked state
+			---@diagnostic disable-next-line: undefined-global
 			local isEnabled = CellAdditionsDB.clickerEnabled
 			if isEnabled == nil then isEnabled = true end
 			enableCb:SetChecked(isEnabled)
@@ -408,15 +413,17 @@ function UIManager:ShowFeatureSettings(index)
 				enableCb.text:SetPoint("LEFT", enableCb, "RIGHT", 2, 0)
 				
 				local enabledProperty = module.id .. "Enabled"
+	---@diagnostic disable-next-line: undefined-global
 	local isEnabled = CellAdditionsDB[enabledProperty]
 	if isEnabled == nil then isEnabled = true end
 	enableCb:SetChecked(isEnabled)
 				
-				enableCb:SetScript("OnClick", function(self)
+				enableCb:SetScript("OnClick", function(checkButton)
 		if module.SetEnabled then
-						module:SetEnabled(self:GetChecked())
+						module:SetEnabled(checkButton:GetChecked())
 					else
-			CellAdditionsDB[enabledProperty] = self:GetChecked()
+			---@diagnostic disable-next-line: undefined-global
+			CellAdditionsDB[enabledProperty] = checkButton:GetChecked()
 					end
 				end)
 
@@ -715,13 +722,13 @@ function CellIntegration:ReplaceUtilitiesButton()
 	self.originalUtilitiesBtn = origBtn
 	self.replacementBtn = newBtn
 	
-	Utils:Debug("Successfully replaced utilities button")
+	Utils.Debug("Successfully replaced utilities button")
 end
 
 function CellIntegration:RegisterCallbacks()
 	local Cell = _G.Cell
 	if not Cell or not Cell.RegisterCallback then
-		Utils:Debug("Cell.RegisterCallback not available")
+		Utils.Debug("Cell.RegisterCallback not available")
 		return
 	end
 	
@@ -742,11 +749,11 @@ function CellIntegration:HookCellTabSystem()
 	if not self.tabCallbacksRegistered then
 		-- Register our own callback to track when Cell switches tabs
 		Cell.RegisterCallback("ShowOptionsTab", "CellAdditions_TabTracker", function(tab)
-			Utils:Debug("Cell switching to tab: " .. tostring(tab))
+			Utils.Debug("Cell switching to tab: " .. tostring(tab))
 			
 			-- If we're showing additions and Cell is switching to another tab, hide additions
 			if ns.wasShowingAdditions and tab ~= "additions" then
-				Utils:Debug("Hiding additions panel due to Cell tab switch to: " .. tab)
+				Utils.Debug("Hiding additions panel due to Cell tab switch to: " .. tab)
 				self:HideAdditionsPanel()
 				
 				-- Let Cell handle the height for the new tab - don't interfere
@@ -755,7 +762,7 @@ function CellIntegration:HookCellTabSystem()
 		end)
 		
 		self.tabCallbacksRegistered = true
-		Utils:Debug("Hooked into Cell's tab system properly")
+		Utils.Debug("Hooked into Cell's tab system properly")
 	end
 end
 
@@ -783,7 +790,7 @@ function CellIntegration:ShowAdditionsPanel()
 	-- Mark that we're showing additions
 	ns.wasShowingAdditions = true
 	
-	Utils:Debug("Showing Additions panel with proper Cell integration")
+	Utils.Debug("Showing Additions panel with proper Cell integration")
 end
 
 function CellIntegration:HideAdditionsPanel()
@@ -801,13 +808,13 @@ function CellIntegration:HideAdditionsPanel()
 	-- Restore utilities tab content if we were in utilities
 	if Cell.frames.utilitiesTab then
 		Cell.frames.utilitiesTab:Show()
-		Utils:Debug("Restored utilities tab visibility")
+		Utils.Debug("Restored utilities tab visibility")
 		
 		-- Also ensure utility content is visible
 		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
 			if child:IsObjectType("Frame") and child ~= Cell.frames.utilitiesTab.mask then
 				child:Show()
-				Utils:Debug("Restored utility content visibility")
+				Utils.Debug("Restored utility content visibility")
 			end
 		end
 	end
@@ -815,7 +822,7 @@ function CellIntegration:HideAdditionsPanel()
 	-- DON'T manually set height - let Cell handle it
 	-- Cell will automatically set the correct height when showing the target tab
 	
-	Utils:Debug("Hidden additions panel and restored utilities content")
+	Utils.Debug("Hidden additions panel and restored utilities content")
 end
 
 function CellIntegration:HideAllCellTabContent()
@@ -837,7 +844,7 @@ function CellIntegration:HideAllCellTabContent()
 	for _, tabName in ipairs(tabFrames) do
 		if Cell.frames[tabName] then
 			Cell.frames[tabName]:Hide()
-			Utils:Debug("Hidden tab frame: " .. tabName)
+			Utils.Debug("Hidden tab frame: " .. tabName)
 		end
 	end
 	
@@ -848,12 +855,12 @@ function CellIntegration:HideAllCellTabContent()
 		for _, child in pairs({Cell.frames.utilitiesTab:GetChildren()}) do
 			if child:IsObjectType("Frame") and child ~= Cell.frames.utilitiesTab.mask then
 				child:Hide()
-				Utils:Debug("Hidden utility content frame")
+				Utils.Debug("Hidden utility content frame")
 			end
 		end
 	end
 	
-	Utils:Debug("Hidden Cell tab content while preserving utilities tab structure")
+	Utils.Debug("Hidden Cell tab content while preserving utilities tab structure")
 end
 
 function CellIntegration:GetCurrentCellTab()
@@ -916,10 +923,10 @@ function CellAdditions:Initialize()
 	
 	-- Register any pending modules
 	if ns.pendingModules then
-		Utils:Debug("Processing " .. #ns.pendingModules .. " pending modules...")
+		Utils.Debug("Processing " .. #ns.pendingModules .. " pending modules...")
 		for _, module in ipairs(ns.pendingModules) do
 			self.moduleSystem:RegisterModule(module)
-			Utils:Debug("Registered pending module: " .. (module.name or "Unknown"))
+			Utils.Debug("Registered pending module: " .. (module.name or "Unknown"))
 		end
 		ns.pendingModules = nil
 	end
@@ -930,22 +937,22 @@ function CellAdditions:Initialize()
 	self.cellIntegration = CellIntegration:New()
 	
 	-- Initialize modules
-	Utils:Debug("About to initialize modules...")
+	Utils.Debug("About to initialize modules...")
 	self.moduleSystem:InitializeModules()
 	
 	-- Debug: Check what modules are registered
 	local moduleCount = 0
 	for id, module in pairs(self.moduleSystem.modules) do
 		moduleCount = moduleCount + 1
-		Utils:Debug("Found module: " .. id .. " - " .. module.name)
+		Utils.Debug("Found module: " .. id .. " - " .. module.name)
 	end
-	Utils:Debug("Total modules registered: " .. moduleCount)
+	Utils.Debug("Total modules registered: " .. moduleCount)
 	
 	-- Create UI
-	Utils:Debug("Creating UI panels...")
+	Utils.Debug("Creating UI panels...")
 	self.ui:CreateMainPanel()
 	self.ui:LoadFeatureList(self.moduleSystem.features)
-	Utils:Debug("Features loaded: " .. #self.moduleSystem.features)
+	Utils.Debug("Features loaded: " .. #self.moduleSystem.features)
 	
 	-- Integrate with Cell
 	self.cellIntegration:ReplaceUtilitiesButton()
@@ -957,7 +964,7 @@ function CellAdditions:Initialize()
 			if not ns.originalOptionsFrameHeight then
 				ns.originalOptionsFrameHeight = Cell.frames.optionsFrame:GetHeight()
 				ns.originalOptionsFrameWidth = Cell.frames.optionsFrame:GetWidth()
-				Utils:Debug("Captured original frame dimensions on Show: " .. ns.originalOptionsFrameWidth .. "x" .. ns.originalOptionsFrameHeight)
+				Utils.Debug("Captured original frame dimensions on Show: " .. ns.originalOptionsFrameWidth .. "x" .. ns.originalOptionsFrameHeight)
 			end
 		end)
 		
@@ -968,14 +975,14 @@ function CellAdditions:Initialize()
 			if not Cell.frames.additionsPanel or not Cell.frames.additionsPanel:IsShown() then
 				if height ~= 550 then -- 550 is our extended height
 					ns.originalOptionsFrameHeight = height
-					Utils:Debug("Updated stored height to: " .. height)
+					Utils.Debug("Updated stored height to: " .. height)
 				end
 			end
 			return originalSetHeight(self, height)
 		end
 	end
 	
-	Utils:Debug("CellAdditions initialized successfully")
+	Utils.Debug("CellAdditions initialized successfully")
 end
 
 local eventFrame = CreateFrame("Frame")
@@ -992,16 +999,16 @@ eventFrame:SetScript("OnEvent", function(self, event, addon)
 end) 
 
 -- Export functions for compatibility
-ns.Debug = function(...) Utils:Debug(...) end
+ns.Debug = function(...) Utils.Debug(...) end
 ns.pendingModules = ns.pendingModules or {}
 ns.RegisterModule = function(module) 
 	if ns.moduleSystem then
 		ns.moduleSystem:RegisterModule(module)
-		Utils:Debug("Registered module: " .. (module.name or "Unknown"))
+		Utils.Debug("Registered module: " .. (module.name or "Unknown"))
 	else
 		-- Store for later registration
 		table.insert(ns.pendingModules, module)
-		Utils:Debug("Queued module for registration: " .. (module.name or "Unknown"))
+		Utils.Debug("Queued module for registration: " .. (module.name or "Unknown"))
 	end
 end
 ns.GetModuleSettingsFrame = function(moduleId)
@@ -1014,5 +1021,5 @@ end
 -- Global function for texture registration
 _G.CellAdditions_RegisterTextures = function(textureList)
 	_G.CellAdditions_PendingTextures = textureList
-	Utils:Debug("Registered " .. #textureList .. " user textures")
+	Utils.Debug("Registered " .. #textureList .. " user textures")
 end
