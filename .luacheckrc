@@ -19,7 +19,7 @@ globals = {
   "BINDING_HEADER_.*",
   "BINDING_NAME_.*",
   "addonName",
-  "self",
+  "self"
 }
 
 exclude_files = {
