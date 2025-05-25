@@ -1,7 +1,5 @@
--- Use Lua 5.1 standard (WoW uses Lua 5.1)
 std = "lua51"
 
--- Globals used in WoW and your addon
 globals = {
   "Cell",
   "CellAdditionsDB",
@@ -31,20 +29,11 @@ globals = {
   "LOCALE_zhCN", "LOCALE_zhTW"
 }
 
--- Allow unused function arguments (e.g. self)
 unused_args = false
 
--- Disable line-length and whitespace warnings for translation files
-["Locales/.*%.lua"] = {
-  ignore = {
-    "line is too long",
-    "trailing whitespace",
-    "line contains only whitespace"
-  }
-}
-
--- Exclude third-party stubs and language server files
 exclude_files = {
   "WoWStubs/**",
   "lua-language-server/**"
 }
+
+max_line_length = 120
