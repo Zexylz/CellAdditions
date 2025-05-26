@@ -9,3 +9,8 @@ syntax = "Lua51"
 
 [sort_requires]
 enabled = true
+
+exclude = [
+  "WoWStubs/*",
+  "lua-language-server/*"
+]
