@@ -85,7 +85,9 @@ jobs:
 
       - name: Format Lua code with stylua
         run: |
-          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
+          stylua-bin/stylua --glob '**/*.lua' \
+            --glob '!WoWStubs/**/*' \
+            --glob '!lua-language-server/**/*'
 
       - name: Set up git remote for pushing
         run: |
