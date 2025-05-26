@@ -85,7 +85,8 @@ jobs:
 
       - name: Format Lua code with stylua
         run: |
-          stylua-bin/stylua --glob '**/*.lua' \
+          stylua-bin/stylua . \
+            --glob '**/*.lua' \
             --glob '!WoWStubs/**/*' \
             --glob '!lua-language-server/**/*'
 
