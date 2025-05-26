@@ -85,7 +85,7 @@ jobs:
 
       - name: Format Lua code with stylua
         run: |
-          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/ --exclude WoWStubs --exclude lua-language-server
+          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
 
       - name: Set up git remote for pushing
         run: |
