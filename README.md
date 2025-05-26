@@ -1,4 +1,4 @@
-# CellAdditions
+# CellAdditions  [![Lua CI](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml)
 
 **CellAdditions** is a modular addon for World of Warcraft, designed to extend the functionality of the [Cell](https://www.curseforge.com/wow/addons/cell) unit frame addon. It offers additional features such as clickable overlays and visual shadow effects that are fully configurable and easy to expand.
 
