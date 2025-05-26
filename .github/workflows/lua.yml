@@ -86,6 +86,10 @@ jobs:
         run: |
           stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
 
+      - name: Set up git remote for pushing
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
       - name: Commit and push formatted code
         uses: EndBug/add-and-commit@v9.1.4
         with:
@@ -93,6 +97,5 @@ jobs:
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
           add: "."
-          pull: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
