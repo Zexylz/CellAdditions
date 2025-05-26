@@ -19,7 +19,6 @@ Media\Textures\TextureList.lua
 
 # API
 API\FrameState.lua
-API\UIFrames.lua
     
 # Modules
 Modules\Shadow.lua
