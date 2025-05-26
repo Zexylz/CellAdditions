@@ -90,17 +90,22 @@ jobs:
             --glob '!WoWStubs/**/*' \
             --glob '!lua-language-server/**/*'
 
-      - name: Set up git remote for pushing
+      - name: Set up git remote
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-
+      
       - name: Commit and push formatted code
         uses: EndBug/add-and-commit@v9.1.4
         with:
           author_name: github-actions
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
-          add: "."
-          pull: true  # This pulls the latest before pushing
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          add: .
+          pull: true
+          cwd: .
+          default_author: github_actor
+          fetch: --tags --force
+          pathspec_error_handling: ignore
+          push: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
