@@ -29,9 +29,10 @@ jobs:
         run: sudo luarocks install luacheck
 
       - name: Format Lua code with Stylua
-        uses: JohnnyMorganz/stylua-action@v3
+        uses: JohnnyMorganz/stylua-action@v4.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest # NOTE: we recommend pinning to a specific version in case of formatting changes
           args: Core.lua API/ Modules/ Locales/ Media/
 
       - name: Clone WoW API stubs
