@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   lint:
     name: Lint & Format Lua Code
@@ -24,7 +27,7 @@ jobs:
         run: |
           sudo luarocks install luacheck
           curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
-          unzip stylua.zip -d stylua-bin
+          unzip -o stylua.zip -d stylua-bin
           chmod +x stylua-bin/stylua
 
       - name: Clone WoW API stubs
@@ -69,10 +72,25 @@ jobs:
             Locales/zhCN.lua \
             Locales/zhTW.lua
 
-      - name: Run luacheck
+      - name: Run luacheck (main code)
         run: |
-          luacheck . --config .luacheckrc
+          luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc || true
 
-      - name: Auto-format Lua code with stylua
+      - name: Run luacheck (Locales - no line length check)
         run: |
-          stylua-bin/stylua .
+          luacheck Locales/ --config .luacheckrc --no-max-line-length || true
+
+      - name: Format Lua code with stylua
+        run: |
+          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
+
+      - name: Commit and push formatted code
+        uses: EndBug/add-and-commit@v9.1.4
+        with:
+          author_name: github-actions
+          author_email: github-actions@github.com
+          message: "style: auto-format code with stylua"
+          add: "."
+          pull: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

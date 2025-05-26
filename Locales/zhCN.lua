@@ -1,7 +1,9 @@
 -- CellAdditions Chinese Simplified Localization
 -- 简体中文本地化
 
-if not LOCALE_zhCN then return end
+if not LOCALE_zhCN then
+  return
+end
 
 local _, ns = ...
 local L = ns.L
@@ -22,7 +24,8 @@ L["No settings available for this feature"] = "此功能没有可用的设置"
 
 -- Clicker Module
 L["Clicker"] = "点击器"
-L["Enhanced click functionality with customizable textures for unit frames"] = "为单位框体提供增强的点击功能和可自定义纹理"
+L["Enhanced click functionality with customizable textures for unit frames"] =
+  "为单位框体提供增强的点击功能和可自定义纹理"
 L["Clicker Settings"] = "点击器设置"
 L["General Settings"] = "常规设置"
 L["Position Settings"] = "位置设置"
@@ -114,4 +117,4 @@ L["Spell Request"] = "法术请求"
 L["Dispel Request"] = "驱散请求"
 L["Quick Assist"] = "快速协助"
 L["Quick Cast"] = "快速施法"
-L["Utilities"] = "实用工具" 
+L["Utilities"] = "实用工具"

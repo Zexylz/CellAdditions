@@ -8,9 +8,7 @@ ns.UIFrames = UIFrames
 local Cell = ns.Cell
 
 -- Get accent color from Cell
-local function GetAccentColor()
-    return Cell.GetAccentColorTable()
-end
+local function GetAccentColor() return Cell.GetAccentColorTable() end
 
 -- Create a solo frame
 function UIFrames:CreateSoloFrame(parent)
@@ -144,27 +142,29 @@ end
 
 -- Create styled divider
 function UIFrames:CreateDivider(parent, width, height)
-    width = width or 300
-    height = height or 2
-    
-    local divider = parent:CreateTexture(nil, "ARTWORK")
-    divider:SetSize(width, height)
-    
-    -- Get accent color from Cell
-    local accentColor = GetAccentColor()
-    divider:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.8)
-    
-    -- Add shadow/glow
-    local shadow = parent:CreateTexture(nil, "ARTWORK")
-    shadow:SetPoint("TOPLEFT", divider, "TOPLEFT", 0, -1)
-    shadow:SetPoint("BOTTOMRIGHT", divider, "BOTTOMRIGHT", 1, -2)
-    shadow:SetColorTexture(0, 0, 0, 0.5)
-    
-    -- Store in namespace
-    if not ns.frames then ns.frames = {} end
-    ns.frames.divider = divider
-    
-    return divider
+  width = width or 300
+  height = height or 2
+
+  local divider = parent:CreateTexture(nil, "ARTWORK")
+  divider:SetSize(width, height)
+
+  -- Get accent color from Cell
+  local accentColor = GetAccentColor()
+  divider:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.8)
+
+  -- Add shadow/glow
+  local shadow = parent:CreateTexture(nil, "ARTWORK")
+  shadow:SetPoint("TOPLEFT", divider, "TOPLEFT", 0, -1)
+  shadow:SetPoint("BOTTOMRIGHT", divider, "BOTTOMRIGHT", 1, -2)
+  shadow:SetColorTexture(0, 0, 0, 0.5)
+
+  -- Store in namespace
+  if not ns.frames then
+    ns.frames = {}
+  end
+  ns.frames.divider = divider
+
+  return divider
 end
 
 -- Create styled toggle switch in Cell style
@@ -223,4 +223,4 @@ function UIFrames:Initialize()
 end
 
 -- Return the API
-return UIFrames 
+return UIFrames

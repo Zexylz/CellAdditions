@@ -1,0 +1,3 @@
+# Ignore LLS , WoW API stubs used only in CI
+WoWStubs/
+lua-language-server/

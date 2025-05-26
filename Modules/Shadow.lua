@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- Get localization table  
+-- Get localization table
 local L = ns.L or {}
 
 -- Ensure critical strings exist with fallbacks

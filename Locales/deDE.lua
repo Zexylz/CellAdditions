@@ -1,7 +1,9 @@
 -- CellAdditions German Localization
 -- Deutsche Übersetzung
 
-if not LOCALE_deDE then return end
+if not LOCALE_deDE then
+  return
+end
 
 local _, ns = ...
 local L = ns.L
@@ -22,7 +24,8 @@ L["No settings available for this feature"] = "Keine Einstellungen für diese Fu
 
 -- Clicker Module
 L["Clicker"] = "Klicker"
-L["Enhanced click functionality with customizable textures for unit frames"] = "Erweiterte Klick-Funktionalität mit anpassbaren Texturen für Einheitenfenster"
+L["Enhanced click functionality with customizable textures for unit frames"] =
+  "Erweiterte Klick-Funktionalität mit anpassbaren Texturen für Einheitenfenster"
 L["Clicker Settings"] = "Klicker Einstellungen"
 L["General Settings"] = "Allgemeine Einstellungen"
 L["Position Settings"] = "Positionseinstellungen"
@@ -53,7 +56,8 @@ L["Clicker module disabled"] = "Klicker-Modul deaktiviert"
 
 -- Shadow Module
 L["Shadow"] = "Schatten"
-L["Add dynamic shadow effects to Cell unit frames and bars"] = "Füge dynamische Schatten-Effekte zu Cell Einheitenfenstern und Balken hinzu"
+L["Add dynamic shadow effects to Cell unit frames and bars"] =
+  "Füge dynamische Schatten-Effekte zu Cell Einheitenfenstern und Balken hinzu"
 L["Shadow Settings"] = "Schatten Einstellungen"
 L["Cell"] = "Cell"
 L["Cell - Unit Frames"] = "Cell - Einheitenfenster"
@@ -114,4 +118,4 @@ L["Spell Request"] = "Zauber-Anfrage"
 L["Dispel Request"] = "Bannen-Anfrage"
 L["Quick Assist"] = "Schnellhilfe"
 L["Quick Cast"] = "Schnellzauber"
-L["Utilities"] = "Dienstprogramme" 
+L["Utilities"] = "Dienstprogramme"

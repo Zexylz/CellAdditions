@@ -1,7 +1,9 @@
 -- CellAdditions Korean Localization
 -- 한국어 번역
 
-if not LOCALE_koKR then return end
+if not LOCALE_koKR then
+  return
+end
 
 local _, ns = ...
 local L = ns.L
@@ -22,7 +24,8 @@ L["No settings available for this feature"] = "이 기능에 대한 설정을 �
 
 -- Clicker Module
 L["Clicker"] = "클리커"
-L["Enhanced click functionality with customizable textures for unit frames"] = "유닛 프레임용 사용자 정의 텍스처를 가진 향상된 클릭 기능"
+L["Enhanced click functionality with customizable textures for unit frames"] =
+  "유닛 프레임용 사용자 정의 텍스처를 가진 향상된 클릭 기능"
 L["Clicker Settings"] = "클리커 설정"
 L["General Settings"] = "일반 설정"
 L["Position Settings"] = "위치 설정"
@@ -53,7 +56,8 @@ L["Clicker module disabled"] = "클리커 모듈 비활성화됨"
 
 -- Shadow Module
 L["Shadow"] = "그림자"
-L["Add dynamic shadow effects to Cell unit frames and bars"] = "Cell 유닛 프레임과 바에 동적 그림자 효과 추가"
+L["Add dynamic shadow effects to Cell unit frames and bars"] =
+  "Cell 유닛 프레임과 바에 동적 그림자 효과 추가"
 L["Shadow Settings"] = "그림자 설정"
 L["Cell"] = "Cell"
 L["Cell - Unit Frames"] = "Cell - 유닛 프레임"
@@ -114,4 +118,4 @@ L["Spell Request"] = "주문 요청"
 L["Dispel Request"] = "해제 요청"
 L["Quick Assist"] = "빠른 지원"
 L["Quick Cast"] = "빠른 시전"
-L["Utilities"] = "유틸리티" 
+L["Utilities"] = "유틸리티"

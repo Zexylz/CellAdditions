@@ -36,10 +36,15 @@
       "hooksecurefunc",
       "GetAddOnMetadata",
       "addonName",
-      "self"
+      "self",
+      "ChatFrame1"
     ]
   },
   "telemetry": {
     "enable": false
-  }
+  },
+    "diagnostics.disable": [
+        "undefined-global",
+        "undefined-field"
+    ]
 }

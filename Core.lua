@@ -993,6 +993,7 @@ end)
 
 -- Export functions for compatibility
 ns.Debug = function(...) Utils:Debug(...) end
+ns.Debug = function(...) Utils:Debug(...) end
 ns.pendingModules = ns.pendingModules or {}
 ns.RegisterModule = function(module) 
 	if ns.moduleSystem then
