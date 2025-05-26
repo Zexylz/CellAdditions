@@ -29,9 +29,11 @@ jobs:
         run: |
           sudo luarocks install luacheck
           curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
-          unzip -o stylua.zip -d stylua-bin
-          rm stylua.zip  # Clean up archive file
-          chmod +x stylua-bin/stylua
+          unzip -o stylua.zip
+          chmod +x stylua
+          mkdir -p stylua-bin
+          mv stylua stylua-bin/stylua
+          rm stylua.zip
 
       - name: Clone WoW API stubs
         run: |
