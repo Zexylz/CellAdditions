@@ -25,12 +25,14 @@ jobs:
           sudo apt update
           sudo apt install -y ninja-build unzip curl luarocks
 
-      - name: Install Lua tools (luacheck + stylua)
-        run: |
-          sudo luarocks install luacheck
-          curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
-          unzip -o stylua.zip -d stylua-bin
-          chmod +x stylua-bin/stylua
+      - name: Install luacheck
+        run: sudo luarocks install luacheck
+
+      - name: Format Lua code with Stylua
+        uses: JohnnyMorganz/stylua-action@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: Core.lua API/ Modules/ Locales/ Media/
 
       - name: Clone WoW API stubs
         run: |
@@ -81,10 +83,6 @@ jobs:
         run: |
           luacheck Locales/ --config .luacheckrc --no-max-line-length || true
 
-      - name: Format Lua code with stylua
-        run: |
-          stylua-bin/stylua Core.lua API/ Modules/ Locales/ Media/
-
       - name: Set up git remote for pushing
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
@@ -96,6 +94,6 @@ jobs:
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
           add: "."
-          pull: true  # This pulls the latest before pushing
+          pull: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
