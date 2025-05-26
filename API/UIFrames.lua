@@ -6,9 +6,6 @@ ns.UIFrames = UIFrames
 
 -- Get references to Cell utilities
 local Cell = ns.Cell
-local L = Cell and Cell.L or {}
-local F = Cell and Cell.funcs or {}
-local P = Cell and Cell.pixelPerfectFuncs or {}
 
 -- Get accent color from Cell
 local function GetAccentColor()
@@ -30,15 +27,15 @@ function UIFrames:CreateSoloFrame(parent)
     -- Make it movable
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(frame)
+    frame:SetScript("OnDragStart", function(dragFrame)
         if not CellAdditionsDB.UISettings.locked then
-            frame:StartMoving()
+            dragFrame:StartMoving()
         end
     end)
-    frame:SetScript("OnDragStop", function(frame)
-        frame:StopMovingOrSizing()
+    frame:SetScript("OnDragStop", function(dragFrame)
+        dragFrame:StopMovingOrSizing()
         -- Save position
-        local point, relativeTo, relativePoint, xOfs, yOfs = frame:GetPoint()
+        local point, _, relativePoint, xOfs, yOfs = dragFrame:GetPoint()
         if not CellAdditionsDB.framePositions then
             CellAdditionsDB.framePositions = {}
         end
@@ -93,13 +90,13 @@ function UIFrames:CreateSoloFrame(parent)
     frame.classIcon = classIcon
     
     -- Update function for live data
-    frame.Update = function(self)
+    frame.Update = function(updateFrame)
         -- Update health
         local health = UnitHealth("player")
         local maxHealth = UnitHealthMax("player")
         if maxHealth > 0 then
             local percent = health / maxHealth * 100
-            self.healthBar:SetValue(percent)
+            updateFrame.healthBar:SetValue(percent)
             
             -- Update health color based on percentage
             local r, g, b
@@ -110,14 +107,14 @@ function UIFrames:CreateSoloFrame(parent)
             else
                 r, g, b = 1, 0, 0
             end
-            self.healthBar:SetStatusBarColor(r, g, b)
+            updateFrame.healthBar:SetStatusBarColor(r, g, b)
         end
         
         -- Update power
         local power = UnitPower("player")
         local maxPower = UnitPowerMax("player")
         if maxPower > 0 then
-            self.powerBar:SetValue(power / maxPower * 100)
+            updateFrame.powerBar:SetValue(power / maxPower * 100)
         end
     end
     
@@ -200,15 +197,15 @@ function UIFrames:CreateToggle(parent, text, callback, tooltips)
     
     -- Button methods
     function toggle:SetChecked(checked)
-        self.button:SetChecked(checked)
+        toggle.button:SetChecked(checked)
     end
     
     function toggle:GetChecked()
-        return self.button:GetChecked()
+        return toggle.button:GetChecked()
     end
     
     function toggle:SetEnabled(enabled)
-        Cell.SetEnabled(enabled, self.button, self.label)
+        Cell.SetEnabled(enabled, toggle.button, toggle.label)
     end
     
     return toggle
@@ -220,7 +217,7 @@ function UIFrames:Initialize()
     
     -- Create solo frame if enabled
     if CellAdditionsDB and CellAdditionsDB.UISettings and CellAdditionsDB.UISettings.soloFrame then
-        self:CreateSoloFrame()
+        UIFrames:CreateSoloFrame()
         ns.Debug("Solo frame created")
     end
 end
