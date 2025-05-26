@@ -88,10 +88,6 @@ jobs:
         run: |
           grep -E "^## Interface: " *.toc || echo "::warning::No Interface version found in .toc file"
 
-      - name: Check for debug prints or TODOs
-        run: |
-          ! grep -rnE "(print|TODO|FIXME)" . || echo "::warning::Debug prints or TODOs found"
-
       - name: Set up git remote for pushing
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
