@@ -32,14 +32,28 @@ After launching the game, CellAdditions will automatically load when Cell is act
 ## 📁 File Structure
 CellAdditions/<br/>
 ├── CellAdditions.toc<br/>
-├── cell-additions.lua<br/>
+├── Core.lua<br/>
 ├── API/<br/>
-│ ├── FrameState.lua<br/>
-│ └── UIFrames.lua<br/>
+│ └── FrameState.lua<br/>
 ├── Modules/<br/>
 │ ├── Clicker.lua<br/>
 │ └── Shadow.lua<br/>
+├── Locales<br/>
+│ ├── LoadLocales.xml<br/>
+│ ├── deDE.lua<br/>
+│ ├── enUS.lua<br/>
+│ ├── esES.lua<br/>
+│ ├── frFR.lua<br/>
+│ ├── itIT.lua<br/>
+│ ├── koKR.lua<br/>
+│ ├── ptBR.lua<br/>
+│ ├── ruRU.lua<br/>
+│ ├── zhCN.lua<br/>
+│ └── zhTW.lua<br/>
 └── Media/<br/>
+&ensp;&ensp;├── Textures<br/>
+&ensp;&ensp;│ ├── TextureList.lua<br/>
+&ensp;&ensp;│ └── healthbar1.tga<br/>
 ‎&ensp;&ensp;├── glowTex.tga<br/>
 ‎&ensp;&ensp;└── icon.tga
 
