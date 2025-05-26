@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Install system dependencies
         run: |
@@ -30,6 +31,7 @@ jobs:
           sudo luarocks install luacheck
           curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
           unzip -o stylua.zip -d stylua-bin
+          rm stylua.zip  # Clean up archive file
           chmod +x stylua-bin/stylua
 
       - name: Clone WoW API stubs
@@ -73,11 +75,11 @@ jobs:
             Locales/zhCN.lua \
             Locales/zhTW.lua
 
-      - name: Run luacheck (main code)
+      - name: Run luacheck on code
         run: |
           luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc || true
 
-      - name: Run luacheck (Locales - no line length check)
+      - name: Run luacheck on Locales (ignore line length)
         run: |
           luacheck Locales/ --config .luacheckrc --no-max-line-length || true
 
