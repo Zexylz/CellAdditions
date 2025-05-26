@@ -61,7 +61,6 @@ jobs:
             Modules/Clicker.lua \
             Modules/Shadow.lua \
             API/FrameState.lua \
-            API/UIFrames.lua \
             Media/Textures/TextureList.lua \
             Locales/deDE.lua \
             Locales/enUS.lua \
