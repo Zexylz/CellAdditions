@@ -7,10 +7,10 @@ line_endings = "Unix"
 collapse_simple_statement = "FunctionOnly"
 syntax = "Lua51"
 
-[sort_requires]
-enabled = true
-
 exclude = [
   "WoWStubs/*",
   "lua-language-server/*"
 ]
+
+[sort_requires]
+enabled = true
