@@ -1,6 +1,5 @@
 # CellAdditions  
 [![Lua CI](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml)
-![Build](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)
 ![Stylua](https://img.shields.io/badge/code%20style-stylua-blue?logo=lua)
 ![License](https://img.shields.io/github/license/Zexylz/CellAdditions)
 ![Last Commit](https://img.shields.io/github/last-commit/Zexylz/CellAdditions)
