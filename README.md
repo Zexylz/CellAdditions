@@ -1,4 +1,9 @@
-# CellAdditions  [![Lua CI](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml)
+# CellAdditions  
+[![Lua CI](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml)
+![Build](https://github.com/Zexylz/CellAdditions/actions/workflows/lua.yml/badge.svg)
+![Stylua](https://img.shields.io/badge/code%20style-stylua-blue?logo=lua)
+![License](https://img.shields.io/github/license/Zexylz/CellAdditions)
+![Last Commit](https://img.shields.io/github/last-commit/Zexylz/CellAdditions)
 
 **CellAdditions** is a modular addon for World of Warcraft, designed to extend the functionality of the [Cell](https://www.curseforge.com/wow/addons/cell) unit frame addon. It offers additional features such as clickable overlays and visual shadow effects that are fully configurable and easy to expand.
 
