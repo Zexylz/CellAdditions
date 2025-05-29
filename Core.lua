@@ -1,5 +1,7 @@
 local addonName, ns = ...
 
+local test
+
 local CellAdditions = {}
 CellAdditions.__index = CellAdditions
 ns.CellAdditions = CellAdditions
