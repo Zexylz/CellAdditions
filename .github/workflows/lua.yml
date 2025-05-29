@@ -92,7 +92,17 @@ jobs:
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
+      - name: Check for changes after formatting
+        id: git-diff
+        run: |
+          if git diff --quiet; then
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Commit and push formatted code
+        if: steps.git-diff.outputs.no_changes == 'false'
         uses: EndBug/add-and-commit@v9.1.4
         with:
           author_name: github-actions
@@ -100,7 +110,5 @@ jobs:
           message: "style: auto-format code with stylua"
           add: "."
           pull: true
-          push: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: success() && steps.format.outputs.has_changes == 'true'
