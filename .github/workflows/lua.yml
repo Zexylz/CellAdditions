@@ -96,9 +96,9 @@ jobs:
         run: |
           grep -E "^## Interface: " *.toc || echo "::warning::No Interface version found in .toc file"
 
-      - name: Set up git remote for pushing
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+      #- name: Set up git remote for pushing
+      #  run: |
+      #    git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Check for changes after formatting
         id: git-diff
