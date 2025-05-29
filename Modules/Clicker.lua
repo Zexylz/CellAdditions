@@ -184,17 +184,25 @@ end
 function TextureManager:IsNinesliceTexture(textureId)
   -- Determine if this texture should use nineslice based on name patterns
   -- Nineslice is best for textures that have borders/decorative edges
-  local nineslicePatterns = { 
-    "nineslice", "9slice", "border", "frame", "button", "panel", "window", "dialog", "box"
+  local nineslicePatterns = {
+    "nineslice",
+    "9slice",
+    "border",
+    "frame",
+    "button",
+    "panel",
+    "window",
+    "dialog",
+    "box",
   }
-  
+
   local name = textureId:lower()
   for _, pattern in ipairs(nineslicePatterns) do
     if name:find(pattern) then
       return true
     end
   end
-  
+
   -- Simple patterns that work better with regular stretching
   local stretchPatterns = { "bar", "health", "mana", "line", "stripe", "simple" }
   for _, pattern in ipairs(stretchPatterns) do
@@ -202,7 +210,7 @@ function TextureManager:IsNinesliceTexture(textureId)
       return false
     end
   end
-  
+
   -- Default to false unless explicitly detected as nineslice
   return false
 end
@@ -236,56 +244,63 @@ function TextureManager:CreateNinesliceFrame(parent, textureId, settings)
   local rightEdge = (cfg.textureWidth - cfg.borderWidth) / cfg.textureWidth
   local topEdge = cfg.borderHeight / cfg.textureHeight
   local bottomEdge = (cfg.textureHeight - cfg.borderHeight) / cfg.textureHeight
-  
+
   -- Debug coordinate calculation
-  Utils:Debug(string.format("Nineslice coords - Left: %.3f, Right: %.3f, Top: %.3f, Bottom: %.3f", 
-    leftEdge, rightEdge, topEdge, bottomEdge))
+  Utils:Debug(
+    string.format(
+      "Nineslice coords - Left: %.3f, Right: %.3f, Top: %.3f, Bottom: %.3f",
+      leftEdge,
+      rightEdge,
+      topEdge,
+      bottomEdge
+    )
+  )
 
   -- Create 9 texture pieces following proper nineslice principles
   local pieces = {}
-  
+
   -- CORNERS (fixed size, never scale)
   -- Top-left corner
   pieces.topLeft = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.topLeft:SetTexture(texturePath)
   pieces.topLeft:SetTexCoord(0, leftEdge, 0, topEdge)
-  
+
   -- Top-right corner
   pieces.topRight = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.topRight:SetTexture(texturePath)
   pieces.topRight:SetTexCoord(rightEdge, 1, 0, topEdge)
-  
+
   -- Bottom-left corner
   pieces.bottomLeft = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.bottomLeft:SetTexture(texturePath)
   pieces.bottomLeft:SetTexCoord(0, leftEdge, bottomEdge, 1)
-  
+
   -- Bottom-right corner
   pieces.bottomRight = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.bottomRight:SetTexture(texturePath)
   pieces.bottomRight:SetTexCoord(rightEdge, 1, bottomEdge, 1)
-  
+
   -- EDGES (scale in one direction only)
   -- Top edge (scales horizontally)
   pieces.topEdge = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.topEdge:SetTexture(texturePath)
   pieces.topEdge:SetTexCoord(leftEdge, rightEdge, 0, topEdge)
-  
+
   -- Bottom edge (scales horizontally)
   pieces.bottomEdge = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.bottomEdge:SetTexture(texturePath)
   pieces.bottomEdge:SetTexCoord(leftEdge, rightEdge, bottomEdge, 1)
-  
+
   -- Left edge (scales vertically)
   pieces.leftEdge = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.leftEdge:SetTexture(texturePath)
   pieces.leftEdge:SetTexCoord(0, leftEdge, topEdge, bottomEdge)
-  
+
   -- Right edge (scales vertically)
   pieces.rightEdge = containerFrame:CreateTexture(nil, "OVERLAY")
   pieces.rightEdge:SetTexture(texturePath)
   pieces.rightEdge:SetTexCoord(rightEdge, 1, topEdge, bottomEdge)
-  
+
   -- CENTER (the actual content - scales in both directions)
   -- This should show the complete finished texture, not just a portion
   pieces.center = containerFrame:CreateTexture(nil, "OVERLAY")
@@ -317,8 +332,12 @@ function TextureManager:LayoutNineslicePieces(container, pieces, config)
   local borderH = config.borderHeight
 
   -- Ensure minimum size
-  if width < borderW * 2 then width = borderW * 2 end
-  if height < borderH * 2 then height = borderH * 2 end
+  if width < borderW * 2 then
+    width = borderW * 2
+  end
+  if height < borderH * 2 then
+    height = borderH * 2
+  end
 
   -- Position corners (fixed size)
   pieces.topLeft:SetSize(borderW, borderH)
@@ -361,7 +380,9 @@ function TextureManager:CreateTextureFrame(parent, textureId, settings)
   end
 
   -- Check if this texture should use nineslice
-  if self:IsNinesliceTexture(textureId) or (settings.ninesliceSettings and settings.ninesliceSettings.forceNineslice) then
+  if
+    self:IsNinesliceTexture(textureId) or (settings.ninesliceSettings and settings.ninesliceSettings.forceNineslice)
+  then
     return self:CreateNinesliceFrame(parent, textureId, settings)
   end
 
@@ -405,12 +426,12 @@ function TextureManager:UpdateTexture(textureFrame, textureId, settings)
       piece:SetAlpha(settings.textureAlpha or 0.8)
       piece:SetBlendMode(settings.textureBlendMode or "BLEND")
     end
-    
+
     -- Re-layout if frame size changed
     if textureFrame.sliceConfig then
       self:LayoutNineslicePieces(textureFrame, textureFrame.pieces, textureFrame.sliceConfig)
     end
-    
+
     textureFrame:Show()
     Utils:Debug("Updated nineslice texture: " .. textureId)
     return
