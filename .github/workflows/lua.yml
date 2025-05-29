@@ -100,5 +100,7 @@ jobs:
           message: "style: auto-format code with stylua"
           add: "."
           pull: true
+          push: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: success() && steps.format.outputs.has_changes == 'true'
