@@ -40,22 +40,30 @@ jobs:
           git clone --depth=1 https://github.com/Ketho/vscode-wow-api.git WoWStubs
 
       - name: Cache Lua Language Server
+        id: lsp-cache
         uses: actions/cache@v4
         with:
-          path: lua-language-server
-          key: lua-language-server-v3
+          path: |
+            lua-language-server
+            lua-language-server/bin
+            lua-language-server/3rd/luamake
+          key: lua-language-server-cache-v1
 
-      - name: Set up Lua Language Server
+      - name: Clone Lua Language Server (if not cached)
+        if: steps.lsp-cache.outputs.cache-hit != 'true'
         run: |
-          if [ ! -d "lua-language-server" ]; then
-            git clone https://github.com/LuaLS/lua-language-server.git
-            cd lua-language-server
-            git submodule update --init --recursive
-            cd 3rd/luamake
-            ./compile/install.sh
-            cd ../..
-            ./3rd/luamake/luamake rebuild
-          fi
+          git clone https://github.com/LuaLS/lua-language-server.git
+          cd lua-language-server
+          git submodule update --init --recursive
+
+      - name: Build Lua Language Server (if not cached)
+        if: steps.lsp-cache.outputs.cache-hit != 'true'
+        run: |
+          cd lua-language-server/3rd/luamake
+          ./compile/install.sh
+          cd ../..
+          ./3rd/luamake/luamake rebuild
+
 
       - name: Run Lua Language Server check
         run: |
