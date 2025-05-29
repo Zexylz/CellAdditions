@@ -39,6 +39,13 @@ local DEFAULT_SETTINGS = {
   selectedTexture = "none",
   textureAlpha = 0.8,
   textureBlendMode = "BLEND",
+  ninesliceSettings = {
+    borderWidth = 16,
+    borderHeight = 16,
+    textureWidth = 64,
+    textureHeight = 64,
+    forceNineslice = false, -- Debug option to force nineslice on all textures
+  },
 }
 
 local Utils = {}
@@ -174,11 +181,191 @@ function TextureManager:GetTexturePath(textureId)
   return nil
 end
 
+function TextureManager:IsNinesliceTexture(textureId)
+  -- Determine if this texture should use nineslice based on name patterns
+  -- Nineslice is best for textures that have borders/decorative edges
+  local nineslicePatterns = { 
+    "nineslice", "9slice", "border", "frame", "button", "panel", "window", "dialog", "box"
+  }
+  
+  local name = textureId:lower()
+  for _, pattern in ipairs(nineslicePatterns) do
+    if name:find(pattern) then
+      return true
+    end
+  end
+  
+  -- Simple patterns that work better with regular stretching
+  local stretchPatterns = { "bar", "health", "mana", "line", "stripe", "simple" }
+  for _, pattern in ipairs(stretchPatterns) do
+    if name:find(pattern) then
+      return false
+    end
+  end
+  
+  -- Default to false unless explicitly detected as nineslice
+  return false
+end
+
+function TextureManager:CreateNinesliceFrame(parent, textureId, settings)
+  if not settings.textureEnabled or textureId == "none" then
+    return nil
+  end
+
+  local texturePath = self:GetTexturePath(textureId)
+  if not texturePath then
+    return nil
+  end
+
+  -- Create container frame
+  local containerFrame = CreateFrame("Frame", nil, parent)
+  containerFrame:SetAllPoints(parent)
+  containerFrame:SetFrameLevel(parent:GetFrameLevel() + 2)
+
+  -- Get nineslice configuration from settings
+  local sliceConfig = Utils:DeepCopy(settings.ninesliceSettings or {
+    borderWidth = 16,
+    borderHeight = 16,
+    textureWidth = 64,
+    textureHeight = 64,
+  })
+
+  -- Calculate texture coordinates for 9 sections
+  local cfg = sliceConfig
+  local leftEdge = cfg.borderWidth / cfg.textureWidth
+  local rightEdge = (cfg.textureWidth - cfg.borderWidth) / cfg.textureWidth
+  local topEdge = cfg.borderHeight / cfg.textureHeight
+  local bottomEdge = (cfg.textureHeight - cfg.borderHeight) / cfg.textureHeight
+  
+  -- Debug coordinate calculation
+  Utils:Debug(string.format("Nineslice coords - Left: %.3f, Right: %.3f, Top: %.3f, Bottom: %.3f", 
+    leftEdge, rightEdge, topEdge, bottomEdge))
+
+  -- Create 9 texture pieces following proper nineslice principles
+  local pieces = {}
+  
+  -- CORNERS (fixed size, never scale)
+  -- Top-left corner
+  pieces.topLeft = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.topLeft:SetTexture(texturePath)
+  pieces.topLeft:SetTexCoord(0, leftEdge, 0, topEdge)
+  
+  -- Top-right corner
+  pieces.topRight = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.topRight:SetTexture(texturePath)
+  pieces.topRight:SetTexCoord(rightEdge, 1, 0, topEdge)
+  
+  -- Bottom-left corner
+  pieces.bottomLeft = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.bottomLeft:SetTexture(texturePath)
+  pieces.bottomLeft:SetTexCoord(0, leftEdge, bottomEdge, 1)
+  
+  -- Bottom-right corner
+  pieces.bottomRight = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.bottomRight:SetTexture(texturePath)
+  pieces.bottomRight:SetTexCoord(rightEdge, 1, bottomEdge, 1)
+  
+  -- EDGES (scale in one direction only)
+  -- Top edge (scales horizontally)
+  pieces.topEdge = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.topEdge:SetTexture(texturePath)
+  pieces.topEdge:SetTexCoord(leftEdge, rightEdge, 0, topEdge)
+  
+  -- Bottom edge (scales horizontally)
+  pieces.bottomEdge = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.bottomEdge:SetTexture(texturePath)
+  pieces.bottomEdge:SetTexCoord(leftEdge, rightEdge, bottomEdge, 1)
+  
+  -- Left edge (scales vertically)
+  pieces.leftEdge = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.leftEdge:SetTexture(texturePath)
+  pieces.leftEdge:SetTexCoord(0, leftEdge, topEdge, bottomEdge)
+  
+  -- Right edge (scales vertically)
+  pieces.rightEdge = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.rightEdge:SetTexture(texturePath)
+  pieces.rightEdge:SetTexCoord(rightEdge, 1, topEdge, bottomEdge)
+  
+  -- CENTER (the actual content - scales in both directions)
+  -- This should show the complete finished texture, not just a portion
+  pieces.center = containerFrame:CreateTexture(nil, "OVERLAY")
+  pieces.center:SetTexture(texturePath)
+  -- Show the full texture for the center piece (complete content)
+  pieces.center:SetTexCoord(0, 1, 0, 1)
+
+  -- Apply alpha and blend mode to all pieces
+  for _, piece in pairs(pieces) do
+    piece:SetAlpha(settings.textureAlpha or 0.8)
+    piece:SetBlendMode(settings.textureBlendMode or "BLEND")
+  end
+
+  -- Position the pieces
+  self:LayoutNineslicePieces(containerFrame, pieces, cfg)
+
+  containerFrame.pieces = pieces
+  containerFrame.sliceConfig = cfg
+  containerFrame:Show()
+
+  Utils:Debug("Created nineslice texture frame: " .. textureId)
+  return containerFrame
+end
+
+function TextureManager:LayoutNineslicePieces(container, pieces, config)
+  local width = container:GetWidth()
+  local height = container:GetHeight()
+  local borderW = config.borderWidth
+  local borderH = config.borderHeight
+
+  -- Ensure minimum size
+  if width < borderW * 2 then width = borderW * 2 end
+  if height < borderH * 2 then height = borderH * 2 end
+
+  -- Position corners (fixed size)
+  pieces.topLeft:SetSize(borderW, borderH)
+  pieces.topLeft:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+
+  pieces.topRight:SetSize(borderW, borderH)
+  pieces.topRight:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+
+  pieces.bottomLeft:SetSize(borderW, borderH)
+  pieces.bottomLeft:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 0, 0)
+
+  pieces.bottomRight:SetSize(borderW, borderH)
+  pieces.bottomRight:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
+
+  -- Position edges (stretch in one direction)
+  pieces.topEdge:SetHeight(borderH)
+  pieces.topEdge:SetPoint("TOPLEFT", pieces.topLeft, "TOPRIGHT", 0, 0)
+  pieces.topEdge:SetPoint("TOPRIGHT", pieces.topRight, "TOPLEFT", 0, 0)
+
+  pieces.bottomEdge:SetHeight(borderH)
+  pieces.bottomEdge:SetPoint("BOTTOMLEFT", pieces.bottomLeft, "BOTTOMRIGHT", 0, 0)
+  pieces.bottomEdge:SetPoint("BOTTOMRIGHT", pieces.bottomRight, "BOTTOMLEFT", 0, 0)
+
+  pieces.leftEdge:SetWidth(borderW)
+  pieces.leftEdge:SetPoint("TOPLEFT", pieces.topLeft, "BOTTOMLEFT", 0, 0)
+  pieces.leftEdge:SetPoint("BOTTOMLEFT", pieces.bottomLeft, "TOPLEFT", 0, 0)
+
+  pieces.rightEdge:SetWidth(borderW)
+  pieces.rightEdge:SetPoint("TOPRIGHT", pieces.topRight, "BOTTOMRIGHT", 0, 0)
+  pieces.rightEdge:SetPoint("BOTTOMRIGHT", pieces.bottomRight, "TOPRIGHT", 0, 0)
+
+  -- Position center (stretch in both directions)
+  pieces.center:SetPoint("TOPLEFT", pieces.topLeft, "BOTTOMRIGHT", 0, 0)
+  pieces.center:SetPoint("BOTTOMRIGHT", pieces.bottomRight, "TOPLEFT", 0, 0)
+end
+
 function TextureManager:CreateTextureFrame(parent, textureId, settings)
   if not settings.textureEnabled or textureId == "none" then
     return nil
   end
 
+  -- Check if this texture should use nineslice
+  if self:IsNinesliceTexture(textureId) or (settings.ninesliceSettings and settings.ninesliceSettings.forceNineslice) then
+    return self:CreateNinesliceFrame(parent, textureId, settings)
+  end
+
+  -- Fall back to simple texture for non-nineslice textures
   local texturePath = self:GetTexturePath(textureId)
   if not texturePath then
     return nil
@@ -197,12 +384,12 @@ function TextureManager:CreateTextureFrame(parent, textureId, settings)
   textureFrame.texture = texture
   textureFrame:Show()
 
-  Utils:Debug("Created texture frame: " .. textureId)
+  Utils:Debug("Created simple texture frame: " .. textureId)
   return textureFrame
 end
 
 function TextureManager:UpdateTexture(textureFrame, textureId, settings)
-  if not textureFrame or not textureFrame.texture then
+  if not textureFrame then
     return
   end
 
@@ -211,14 +398,36 @@ function TextureManager:UpdateTexture(textureFrame, textureId, settings)
     return
   end
 
-  local texturePath = self:GetTexturePath(textureId)
-  if texturePath then
-    textureFrame.texture:SetTexture(texturePath)
-    textureFrame.texture:SetAlpha(settings.textureAlpha or 0.8)
-    textureFrame.texture:SetBlendMode(settings.textureBlendMode or "BLEND")
+  -- Handle nineslice textures
+  if textureFrame.pieces then
+    -- Update nineslice pieces
+    for _, piece in pairs(textureFrame.pieces) do
+      piece:SetAlpha(settings.textureAlpha or 0.8)
+      piece:SetBlendMode(settings.textureBlendMode or "BLEND")
+    end
+    
+    -- Re-layout if frame size changed
+    if textureFrame.sliceConfig then
+      self:LayoutNineslicePieces(textureFrame, textureFrame.pieces, textureFrame.sliceConfig)
+    end
+    
     textureFrame:Show()
-  else
-    textureFrame:Hide()
+    Utils:Debug("Updated nineslice texture: " .. textureId)
+    return
+  end
+
+  -- Handle simple textures
+  if textureFrame.texture then
+    local texturePath = self:GetTexturePath(textureId)
+    if texturePath then
+      textureFrame.texture:SetTexture(texturePath)
+      textureFrame.texture:SetAlpha(settings.textureAlpha or 0.8)
+      textureFrame.texture:SetBlendMode(settings.textureBlendMode or "BLEND")
+      textureFrame:Show()
+      Utils:Debug("Updated simple texture: " .. textureId)
+    else
+      textureFrame:Hide()
+    end
   end
 end
 
@@ -516,10 +725,11 @@ function UIManager:CreateSettings(parent, enableCheckbox)
   self:CreateGeneralSettings(content, settingsHeader)
   self:CreatePositionSettings(content)
   self:CreateTextureSettings(content)
+  self:CreateNinesliceSettings(content)
   self:CreateAdvancedSettings(content)
 
   -- Calculate and set proper content height
-  local totalHeight = 450 -- Base height for all the content
+  local totalHeight = 550 -- Base height for all the content (increased for nineslice settings)
   content:SetHeight(totalHeight)
 
   -- Update scroll frame if it exists
@@ -711,6 +921,64 @@ function UIManager:CreateTextureSettings(parent)
   self.textureDropdown = textureDropdown
   self.alphaSlider = alphaSlider
   self.lastAnchor = alphaSlider
+end
+
+function UIManager:CreateNinesliceSettings(parent)
+  local Cell = ns.Cell or _G.Cell
+  local settings = self.settingsManager:GetAll()
+
+  -- Section header
+  local sectionHeader = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  sectionHeader:SetPoint("TOPLEFT", self.lastAnchor, "BOTTOMLEFT", 0, -35)
+  sectionHeader:SetText("Nineslice Settings")
+
+  -- Border Width
+  local borderWidthLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  borderWidthLabel:SetPoint("TOPLEFT", sectionHeader, "BOTTOMLEFT", 5, -15)
+  borderWidthLabel:SetText("Border Width")
+
+  local borderWidthValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  borderWidthValue:SetPoint("LEFT", borderWidthLabel, "RIGHT", 30, 0)
+  borderWidthValue:SetText(tostring(settings.ninesliceSettings.borderWidth))
+
+  local borderWidthSlider = Cell.CreateSlider("", parent, 1, 32, 180, 1)
+  borderWidthSlider:SetPoint("TOPLEFT", borderWidthLabel, "BOTTOMLEFT", 0, -5)
+  borderWidthSlider:SetValue(settings.ninesliceSettings.borderWidth)
+  borderWidthSlider.afterValueChangedFn = function(value)
+    local newValue = math.floor(value)
+    self.settingsManager.settings.ninesliceSettings.borderWidth = newValue
+    borderWidthValue:SetText(tostring(newValue))
+    self:TriggerLayoutUpdate()
+  end
+
+  -- Border Height
+  local borderHeightLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  borderHeightLabel:SetPoint("TOPLEFT", borderWidthSlider, "BOTTOMLEFT", 0, -25)
+  borderHeightLabel:SetText("Border Height")
+
+  local borderHeightValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  borderHeightValue:SetPoint("LEFT", borderHeightLabel, "RIGHT", 30, 0)
+  borderHeightValue:SetText(tostring(settings.ninesliceSettings.borderHeight))
+
+  local borderHeightSlider = Cell.CreateSlider("", parent, 1, 32, 180, 1)
+  borderHeightSlider:SetPoint("TOPLEFT", borderHeightLabel, "BOTTOMLEFT", 0, -5)
+  borderHeightSlider:SetValue(settings.ninesliceSettings.borderHeight)
+  borderHeightSlider.afterValueChangedFn = function(value)
+    local newValue = math.floor(value)
+    self.settingsManager.settings.ninesliceSettings.borderHeight = newValue
+    borderHeightValue:SetText(tostring(newValue))
+    self:TriggerLayoutUpdate()
+  end
+
+  -- Force Nineslice checkbox (for testing)
+  local forceNinesliceCheckbox = Cell.CreateCheckButton(parent, "Force Nineslice (Debug)", function(checked)
+    self.settingsManager.settings.ninesliceSettings.forceNineslice = checked
+    self:TriggerLayoutUpdate()
+  end)
+  forceNinesliceCheckbox:SetPoint("TOPLEFT", borderHeightSlider, "BOTTOMLEFT", 0, -25)
+  forceNinesliceCheckbox:SetChecked(settings.ninesliceSettings.forceNineslice)
+
+  self.lastAnchor = forceNinesliceCheckbox
 end
 
 function UIManager:CreateAdvancedSettings(parent)

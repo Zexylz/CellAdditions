@@ -1,6 +1,5 @@
 local addonName, ns = ...
 
-local test
 
 local CellAdditions = {}
 CellAdditions.__index = CellAdditions
@@ -28,7 +27,7 @@ local DEFAULT_SETTINGS = {
   enabled = true,
   shadowEnabled = true,
   clickerEnabled = true,
-  debug = true,
+  debug = false,
   currentTab = "raidTools",
   shadowSize = 4,
   shadowColor = { r = 0, g = 0, b = 0, a = 1 },

@@ -1,24 +1,25 @@
--- TEXTURE TILING SYSTEM
--- ===================
--- CellAdditions automatically detects which textures should use tiling:
+-- NINESLICE TEXTURE SYSTEM
+-- ========================
+-- CellAdditions automatically detects which textures should use nineslice scaling:
 --
--- TILED TEXTURES (borders stay fixed, middle repeats):
--- - Names containing: "bar", "health", "border", "frame"
--- - Examples: healthbar1.tga, health_bar_blue.tga, border_fancy.tga, frame_gold.tga
--- - These textures are split into 3 parts: left border | repeating middle | right border
--- - Perfect for health bars that need to stretch without distorting decorative edges
+-- NINESLICE TEXTURES (borders stay fixed, middle scales):
+-- - Names containing: "nineslice", "9slice", "border", "frame", "button"
+-- - Examples: border_fancy.tga, frame_gold.tga, nineslice_button.tga
+-- - These textures are split into 9 parts: 4 corners + 4 edges + 1 center
+-- - Corners never scale, edges scale in one direction, center scales in both
+-- - Perfect for frames/borders that need to stretch without distorting decorative edges
 --
--- STRETCHED TEXTURES (entire texture stretches):
--- - All other texture names
--- - Examples: simple_overlay.tga, crystal_texture.tga
+-- SIMPLE TEXTURES (entire texture stretches):
+-- - All other texture names (including "bar" and "health" textures)
+-- - Examples: simple_overlay.tga, crystal_texture.tga, healthbar1.tga, blueBar.tga
 -- - These stretch the entire texture to fit the frame
 -- - Good for simple patterns or textures without decorative borders
 --
--- TEXTURE REQUIREMENTS FOR TILING:
--- - Texture width: preferably 64px (configurable in settings)
--- - Left/right borders: default 8px each (configurable in UI)
--- - Middle section: remaining pixels (48px in a 64px texture with 8px borders)
--- - The middle section will be repeated/tiled horizontally as needed
+-- NINESLICE TEXTURE REQUIREMENTS:
+-- - Texture dimensions: preferably 64x64px (configurable in settings)
+-- - Border width/height: default 8px each (configurable in UI)
+-- - Center section: remaining pixels that will scale
+-- - Design your texture with non-scaling borders and scalable center
 --
 -- JUST ADD YOUR TEXTURE FILENAMES BELOW - ONE PER LINE!
 -- No quotes, no commas, no special syntax - just the filename!
@@ -30,11 +31,7 @@
 local TEXTURE_FILES = [[
 
 healthbar1.tga
-health_bar_blue.tga
-border_fancy.tga
-frame_gold.tga
-simple_overlay.tga
-crystal_texture.tga
+blueBar.tga
 
 
 ]]
