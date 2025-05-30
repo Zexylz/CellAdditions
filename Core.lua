@@ -26,7 +26,7 @@ local DEFAULT_SETTINGS = {
   enabled = true,
   shadowEnabled = true,
   clickerEnabled = true,
-  debug = false,
+  debug = true,
   currentTab = "raidTools",
   shadowSize = 4,
   shadowColor = { r = 0, g = 0, b = 0, a = 1 },
