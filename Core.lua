@@ -16,7 +16,6 @@ L["Features"] = L["Features"] or "Features"
 L["Settings"] = L["Settings"] or "Settings"
 L["Enable"] = L["Enable"] or "Enable"
 
-local DEBUG_ENABLED = true
 local ADDON_VERSION = "1.0"
 local FRAME_STRATA = "HIGH"
 local ACCENT_COLOR_ALPHA = 0.7
@@ -26,7 +25,7 @@ local DEFAULT_SETTINGS = {
   enabled = true,
   shadowEnabled = true,
   clickerEnabled = true,
-  debug = true,
+  debug = false,
   currentTab = "raidTools",
   shadowSize = 4,
   shadowColor = { r = 0, g = 0, b = 0, a = 1 },
@@ -58,10 +57,6 @@ local DEFAULT_SETTINGS = {
 local Utils = {}
 
 function Utils:Debug(msg)
-  if not DEBUG_ENABLED then
-    return
-  end
-
   if CellAdditionsDB and CellAdditionsDB.debug then
     local frame = DEFAULT_CHAT_FRAME or ChatFrame1
     if frame then
@@ -193,7 +188,7 @@ function UIManager:CreateMainPanel()
     return
   end
 
-  -- Create main panel
+  -- Create main panel with initial size - will be resized dynamically
   local panel = Cell.CreateFrame("CellAdditionsPanel", _G.UIParent, 400, 500)
   panel:SetPoint("CENTER")
   panel:SetFrameStrata(FRAME_STRATA)
@@ -249,6 +244,8 @@ function UIManager:CreateMainPanel()
   self.frames.panel = panel
   self.frames.listFrame = listFrame
   self.frames.settingsFrame = settingsFrame
+  self.frames.listPane = listPane
+  self.frames.settingsPane = settingsPane
 
   -- Store in Cell for compatibility
   Cell.frames.additionsPanel = panel
@@ -300,6 +297,14 @@ function UIManager:LoadFeatureList(features)
     -- Store data
     button.feature = feature
     button.index = i
+    
+    -- Create custom selected overlay texture
+    button.selectedOverlay = button:CreateTexture(nil, "BACKGROUND")
+    button.selectedOverlay:SetAllPoints(button)
+    local accentColor = self:GetAccentColor()
+    -- Use Cell's standard alpha for selected states
+    button.selectedOverlay:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)
+    button.selectedOverlay:Hide()
 
     -- Click handler
     button:SetScript("OnClick", function() self:SelectFeature(i) end)
@@ -319,13 +324,45 @@ end
 function UIManager:SelectFeature(index)
   self.selectedFeature = index
 
-  -- Update button states
+  -- Update button states with selected highlighting
   for i, button in ipairs(self.buttons) do
-    button:SetButtonState(i == index and "PUSHED" or "NORMAL")
+    if i == index then
+      -- Selected state: show overlay and set pushed state
+      button.selectedOverlay:Show()
+      button:SetButtonState("PUSHED", true)
+    else
+      -- Unselected state: hide overlay and reset to normal
+      button.selectedOverlay:Hide()
+      button:SetButtonState("NORMAL")
+    end
   end
 
   -- Show settings for selected feature
   self:ShowFeatureSettings(index)
+end
+
+function UIManager:ResizePanelForFeature(featureId)
+  if not self.frames.panel then
+    return
+  end
+
+  -- Define content sizes for different features
+  local featureSizes = {
+    Shadow = { width = 400, height = 380 },    -- Compact size for Shadow
+    clicker = { width = 450, height = 520 },   -- Larger size for Clicker
+  }
+
+  -- Get size for current feature or use default
+  local size = featureSizes[featureId] or { width = 400, height = 450 }
+  
+  -- Resize main panel
+  self.frames.panel:SetSize(size.width, size.height)
+  
+  -- Update settings pane height to match
+  local settingsPaneHeight = size.height - 40  -- Account for padding
+  self.frames.settingsPane:SetHeight(settingsPaneHeight)
+  
+  Utils:Debug("Resized panel for " .. featureId .. ": " .. size.width .. "x" .. size.height)
 end
 
 function UIManager:ShowFeatureSettings(index)
@@ -343,6 +380,9 @@ function UIManager:ShowFeatureSettings(index)
     return
   end
 
+  -- Resize panel based on the selected feature
+  self:ResizePanelForFeature(module.id)
+
   -- Clear existing content
   local content = self.frames.settingsFrame.scrollFrame.content
   content:SetHeight(1)
@@ -358,7 +398,7 @@ function UIManager:ShowFeatureSettings(index)
   -- Add separator line
   local accentColor = self:GetAccentColor()
   local line = content:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+  line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)  -- Cell's standard for separators
   line:SetSize(250, 1)
   line:SetPoint("TOPLEFT", content, "TOPLEFT", 5, -5)
 
@@ -488,6 +528,13 @@ function CellIntegration:CreateUtilitiesMenu(parent)
       btn:SetPoint("TOPLEFT", buttons[i - 1], "BOTTOMLEFT")
       btn:SetPoint("TOPRIGHT", buttons[i - 1], "BOTTOMRIGHT")
     end
+    
+    -- Create custom selected overlay texture (same as feature buttons)
+    btn.selectedOverlay = btn:CreateTexture(nil, "BACKGROUND")
+    btn.selectedOverlay:SetAllPoints(btn)
+    local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
+    btn.selectedOverlay:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)  -- Cell's standard
+    btn.selectedOverlay:Hide()
 
     btn:SetScript("OnClick", function()
       self:HandleMenuClick(item.id)
@@ -506,21 +553,13 @@ function CellIntegration:CreateUtilitiesMenu(parent)
     local currentTab = CellAdditionsDB.currentTab or "raidTools"
     for id, button in pairs(menu.buttons) do
       if id == currentTab then
-        -- Highlight selected item with Cell's accent color
+        -- Selected state: show overlay and set pushed state (same as feature buttons)
+        button.selectedOverlay:Show()
         button:SetButtonState("PUSHED", true)
-        -- Change the button color to show it's selected
-        if button.SetBackdropColor then
-          -- Use Cell's accent color that changes with roles
-          local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
-          button:SetBackdropColor(accentColor[1], accentColor[2], accentColor[3], 0.3)
-        end
       else
-        -- Normal state for others
+        -- Normal state: hide overlay and reset to normal (same as feature buttons)
+        button.selectedOverlay:Hide()
         button:SetButtonState("NORMAL")
-        -- Reset to transparent background
-        if button.SetBackdropColor then
-          button:SetBackdropColor(0, 0, 0, 0)
-        end
       end
     end
   end

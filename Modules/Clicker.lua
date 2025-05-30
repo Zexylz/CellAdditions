@@ -37,7 +37,7 @@ local DEFAULT_SETTINGS = {
   debug = false,
   textureEnabled = false,
   selectedTexture = "none",
-  textureAlpha = 0.8,
+  textureAlpha = 0.7,  -- Cell's standard alpha for UI elements
   textureBlendMode = "BLEND",
 }
 

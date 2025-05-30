@@ -114,6 +114,7 @@ ns.L = setmetatable({
   ["Quick Assist"] = "Quick Assist",
   ["Quick Cast"] = "Quick Cast",
   ["Utilities"] = "Utilities",
+  ["Additions"] = "Additions",
 }, {
   -- Metatable for fallback to key if translation not found
   __index = function(t, key) return key end,

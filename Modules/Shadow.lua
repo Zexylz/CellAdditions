@@ -536,9 +536,9 @@ function UIManager:CreateSeparator(parent, anchor, offsetY)
   local Cell = ns.Cell or _G.Cell
   local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
   local separator = parent:CreateTexture(nil, "ARTWORK")
-  separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+  separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)  -- Cell's standard for separators
   separator:SetSize(250, 1)
-  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15)
+  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15)  -- Changed back to -15 for tighter spacing
   return separator
 end
 
@@ -609,7 +609,7 @@ function UIManager:CreateGeneralSettings(parent, settings)
   sizeValue:SetPoint("LEFT", sizeLabel, "RIGHT", 50, 0)
   sizeValue:SetText(tostring(settings.shadowSize))
 
-  local sizeSlider = Cell.CreateSlider("", parent, 1, 15, 180, 1)
+  local sizeSlider = Cell.CreateSlider("", parent, 1, 15, 240, 1)
   sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -5)
   sizeSlider:SetValue(settings.shadowSize)
   sizeSlider.afterValueChangedFn = function(value)
@@ -629,6 +629,14 @@ function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
   local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
   header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
   header:SetText(L["Cell"] or "Cell")
+
+  -- Add underline under the header text
+  local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
+  local underline = parent:CreateTexture(nil, "ARTWORK")
+  underline:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+  local textWidth = header:GetStringWidth()
+  underline:SetSize(textWidth, 1)
+  underline:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
 
   local lastElement = header
 
@@ -669,19 +677,34 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 
   -- Section header
   local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
-  header:SetText(L["Cell"] or "Cell")
+  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -5)  -- Changed from -10 to -5 for tighter spacing
+  header:SetText(L["Cell - Unit Frames"] or "Cell- Unit Frames")
+
+  -- Add underline under the header text
+  local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
+  local underline = parent:CreateTexture(nil, "ARTWORK")
+  underline:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)
+  local textWidth = header:GetStringWidth()
+  underline:SetSize(textWidth, 1)
+  underline:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
 
   -- Column headers - positioned to align with color pickers
   local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  hbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 215, 3)
+  hbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 215, 6)
   hbLabel:SetText("HB")
   hbLabel:SetJustifyH("CENTER")
 
   local pbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  pbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 242, 3)
+  pbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 242, 6)
   pbLabel:SetText("PB")
   pbLabel:SetJustifyH("CENTER")
+  
+  -- Add vertical separator between color picker columns
+  local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
+  local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
+  verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)  -- Cell's standard for UI elements
+  verticalSeparator:SetSize(1, 130) -- Height covers all unit frame rows
+  verticalSeparator:SetPoint("TOP", header, "BOTTOMLEFT", 240, 0)
 
   local lastElement = header
 
@@ -729,11 +752,9 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 end
 
 function UIManager:TriggerShadowUpdate()
-  C_Timer.After(0.1, function()
-    if ns.Shadow and ns.Shadow.shadowManager then
-      ns.Shadow.shadowManager:UpdateAllShadows()
-    end
-  end)
+  if ns.Shadow and ns.Shadow.shadowManager then
+    ns.Shadow.shadowManager:UpdateAllShadows()
+  end
 end
 
 -- ============================================================================
@@ -777,8 +798,8 @@ function Shadow:Initialize()
   self.initialized = true
   Utils:Debug("Shadow module initialized successfully")
 
-  -- Initial scan
-  C_Timer.After(1, function() self:Update() end)
+  -- Initial scan (immediate)
+  self:Update()
 end
 
 function Shadow:RegisterEvents()
@@ -795,7 +816,7 @@ function Shadow:RegisterEvents()
   end
 
   self.eventFrame:SetScript("OnEvent", function()
-    C_Timer.After(0.5, function() self:Update() end)
+    self:Update()
   end)
 
   Utils:Debug("Registered WoW events")
@@ -816,7 +837,7 @@ function Shadow:RegisterCallbacks()
 
   for _, callbackName in ipairs(callbacks) do
     Cell:RegisterCallback(callbackName, function()
-      C_Timer.After(0.2, function() self:Update() end)
+      self:Update()
     end)
   end
 
@@ -850,7 +871,7 @@ function Shadow:SetEnabled(enabled)
 
   if enabled and not wasEnabled then
     self:Initialize()
-    C_Timer.After(0.5, function() self:Update() end)
+    self:Update()
   elseif not enabled and wasEnabled then
     self.shadowManager:DestroyAllShadows()
   end
@@ -873,12 +894,10 @@ ns.addon.Shadow = shadowInstance
 -- Export the class for direct access if needed
 ns.ShadowClass = Shadow
 
--- Register module
-C_Timer.After(0, function()
-  if ns.RegisterModule then
-    ns.RegisterModule(shadowInstance)
-    Utils:Debug("Shadow module registered with module system")
-  else
-    Utils:Debug("Module system not available for registration")
-  end
-end)
+-- Register module (immediate)
+if ns.RegisterModule then
+  ns.RegisterModule(shadowInstance)
+  Utils:Debug("Shadow module registered with module system")
+else
+  Utils:Debug("Module system not available for registration")
+end

@@ -19,7 +19,7 @@ L["Enabled"] = "已启用"
 L["Disabled"] = "已禁用"
 
 -- Main UI
-L["Additions"] = "扩展功能"
+L["Additions"] = "附加功能"
 L["No settings available for this feature"] = "此功能没有可用的设置"
 
 -- Clicker Module
