@@ -507,7 +507,7 @@ function CellIntegration:CreateUtilitiesMenu(parent)
       maxWidth = textWidth
     end
   end
-  local width = math.ceil(maxWidth + 13)  -- Use Cell's exact padding of +13
+  local width = math.ceil(maxWidth + 13) -- Use Cell's exact padding of +13
 
   -- Create buttons
   local buttons = {}
