@@ -106,10 +106,10 @@ local FRAME_PATTERNS = {
   },
   unitframes = {
     Player = { "CUF_Player", "CellUnitFramePlayer" },
-    Target = { "CUF_Target", "TargetFrame", "CellUnitFrameTarget" },
+    Target = { "CUF_Target", "TargetFrame", "CellUnitFrameTarget", "CellTargetFrame", "Cell_TargetFrame" },
     TargetTarget = { "CUF_TargetTarget", "TargetFrameToT" },
-    Focus = { "CUF_Focus", "FocusFrame", "CellUnitFrameFocus" },
-    Pet = { "CUF_Pet", "PetFrame", "CellUnitFramePet" },
+    Focus = { "CUF_Focus", "FocusFrame", "CellUnitFrameFocus", "CellFocusFrame", "Cell_FocusFrame" },
+    Pet = { "CUF_Pet", "PetFrame", "CellUnitFramePet", "CellPetFrame", "Cell_PetFrame" },
   },
 }
 
@@ -449,9 +449,13 @@ function FrameScanner:ScanAllFrames()
 end
 
 function FrameScanner:ScanUnitFrames(unitType, patterns)
+  Utils:Debug("Scanning for " .. unitType .. " frames...")
+  
   for _, pattern in ipairs(patterns) do
     local frame = _G[pattern]
+    Utils:Debug("Checking pattern '" .. pattern .. "': " .. (frame and "FOUND" or "NOT FOUND"))
     if Utils:IsFrameValid(frame) then
+      Utils:Debug("Creating shadow for " .. unitType .. " frame: " .. pattern)
       self.shadowManager:CreateShadow(frame, unitType, "health")
 
       -- Look for health/power bars
@@ -465,6 +469,8 @@ function FrameScanner:ScanUnitFrames(unitType, patterns)
       if powerBar and Utils:IsFrameValid(powerBar) then
         self.shadowManager:CreateShadow(powerBar, unitType, "power")
       end
+    elseif frame then
+      Utils:Debug("Frame exists but not valid (hidden/transparent): " .. pattern)
     end
   end
 end
@@ -538,7 +544,7 @@ function UIManager:CreateSeparator(parent, anchor, offsetY)
   local separator = parent:CreateTexture(nil, "ARTWORK")
   separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6) -- Cell's standard for separators
   separator:SetSize(250, 1)
-  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15) -- Changed back to -15 for tighter spacing
+  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -25) -- Changed from -15 to -25 for more spacing
   return separator
 end
 
@@ -605,21 +611,57 @@ function UIManager:CreateGeneralSettings(parent, settings)
   sizeLabel:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -20)
   sizeLabel:SetText(L["Shadow Size"] or "Shadow Size")
 
-  local sizeValue = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  sizeValue:SetPoint("LEFT", sizeLabel, "RIGHT", 50, 0)
-  sizeValue:SetText(tostring(settings.shadowSize))
-
   local sizeSlider = Cell.CreateSlider("", parent, 1, 15, 240, 1)
   sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -5)
   sizeSlider:SetValue(settings.shadowSize)
+
+  -- Try to hide Cell's built-in value display after a short delay
+  C_Timer.After(0.1, function()
+    -- Try multiple approaches to find and hide the value text
+    if sizeSlider.value then
+      sizeSlider.value:Hide()
+    end
+    if sizeSlider.valueText then
+      sizeSlider.valueText:Hide()
+    end
+    if sizeSlider.text then
+      sizeSlider.text:Hide()
+    end
+    
+    -- Scan all regions for text elements
+    for _, region in pairs({sizeSlider:GetRegions()}) do
+      if region:IsObjectType("FontString") then
+        region:Hide()
+      end
+    end
+    
+    -- Scan all children for text elements
+    for _, child in pairs({sizeSlider:GetChildren()}) do
+      if child:IsObjectType("FontString") then
+        child:Hide()
+      end
+      -- Check children of children too
+      for _, grandchild in pairs({child:GetChildren()}) do
+        if grandchild:IsObjectType("FontString") then
+          grandchild:Hide()
+        end
+      end
+    end
+  end)
+
   sizeSlider.afterValueChangedFn = function(value)
     local newValue = math.floor(value)
     self.settingsManager:Set("shadowSize", newValue)
-    sizeValue:SetText(tostring(newValue))
     self:TriggerShadowUpdate()
   end
 
-  return sizeSlider
+  -- Add some spacing after the slider by creating an invisible spacer
+  local spacer = parent:CreateTexture(nil, "ARTWORK")
+  spacer:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", 0, -15)
+  spacer:SetSize(1, 1)
+  spacer:SetColorTexture(0, 0, 0, 0)
+
+  return spacer -- Return spacer instead of slider so next section has proper spacing
 end
 
 function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
@@ -814,7 +856,15 @@ function Shadow:RegisterEvents()
     self.eventFrame:RegisterEvent(event)
   end
 
-  self.eventFrame:SetScript("OnEvent", function() self:Update() end)
+  self.eventFrame:SetScript("OnEvent", function(_, event)
+    -- Add small delay for target/focus changes to allow frames to be created
+    if event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_FOCUS_CHANGED" then
+      C_Timer.After(0.1, function() self:Update() end)
+    else
+      -- Immediate update for other events
+      self:Update()
+    end
+  end)
 
   Utils:Debug("Registered WoW events")
 end

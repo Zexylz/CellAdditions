@@ -417,15 +417,22 @@ function UIManager:ShowFeatureSettings(index)
         if module.SetEnabled then
           module:SetEnabled(checked)
         else
-          CellAdditionsDB.clickerEnabled = checked
+          -- Use the correct Clicker settings location
+          if not CellAdditionsDB.clickerSettings then
+            CellAdditionsDB.clickerSettings = {}
+          end
+          CellAdditionsDB.clickerSettings.enabled = checked
         end
       end)
       enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
 
-      -- Set initial checked state
-      local isEnabled = CellAdditionsDB.clickerEnabled
-      if isEnabled == nil then
-        isEnabled = true
+      -- Set initial checked state from correct location
+      local isEnabled = true -- default
+      if CellAdditionsDB.clickerSettings then
+        isEnabled = CellAdditionsDB.clickerSettings.enabled
+        if isEnabled == nil then
+          isEnabled = true
+        end
       end
       enableCb:SetChecked(isEnabled)
 
