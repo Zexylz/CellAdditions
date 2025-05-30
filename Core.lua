@@ -297,7 +297,7 @@ function UIManager:LoadFeatureList(features)
     -- Store data
     button.feature = feature
     button.index = i
-    
+
     -- Create custom selected overlay texture
     button.selectedOverlay = button:CreateTexture(nil, "BACKGROUND")
     button.selectedOverlay:SetAllPoints(button)
@@ -348,20 +348,20 @@ function UIManager:ResizePanelForFeature(featureId)
 
   -- Define content sizes for different features
   local featureSizes = {
-    Shadow = { width = 400, height = 380 },    -- Compact size for Shadow
-    clicker = { width = 450, height = 520 },   -- Larger size for Clicker
+    Shadow = { width = 400, height = 380 }, -- Compact size for Shadow
+    clicker = { width = 450, height = 520 }, -- Larger size for Clicker
   }
 
   -- Get size for current feature or use default
   local size = featureSizes[featureId] or { width = 400, height = 450 }
-  
+
   -- Resize main panel
   self.frames.panel:SetSize(size.width, size.height)
-  
+
   -- Update settings pane height to match
-  local settingsPaneHeight = size.height - 40  -- Account for padding
+  local settingsPaneHeight = size.height - 40 -- Account for padding
   self.frames.settingsPane:SetHeight(settingsPaneHeight)
-  
+
   Utils:Debug("Resized panel for " .. featureId .. ": " .. size.width .. "x" .. size.height)
 end
 
@@ -398,7 +398,7 @@ function UIManager:ShowFeatureSettings(index)
   -- Add separator line
   local accentColor = self:GetAccentColor()
   local line = content:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)  -- Cell's standard for separators
+  line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6) -- Cell's standard for separators
   line:SetSize(250, 1)
   line:SetPoint("TOPLEFT", content, "TOPLEFT", 5, -5)
 
@@ -528,12 +528,12 @@ function CellIntegration:CreateUtilitiesMenu(parent)
       btn:SetPoint("TOPLEFT", buttons[i - 1], "BOTTOMLEFT")
       btn:SetPoint("TOPRIGHT", buttons[i - 1], "BOTTOMRIGHT")
     end
-    
+
     -- Create custom selected overlay texture (same as feature buttons)
     btn.selectedOverlay = btn:CreateTexture(nil, "BACKGROUND")
     btn.selectedOverlay:SetAllPoints(btn)
     local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
-    btn.selectedOverlay:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)  -- Cell's standard
+    btn.selectedOverlay:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7) -- Cell's standard
     btn.selectedOverlay:Hide()
 
     btn:SetScript("OnClick", function()
