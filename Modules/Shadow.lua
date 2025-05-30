@@ -700,7 +700,6 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
   pbLabel:SetJustifyH("CENTER")
 
   -- Add vertical separator between color picker columns
-  local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
   local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
   verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7) -- Cell's standard for UI elements
   verticalSeparator:SetSize(1, 130) -- Height covers all unit frame rows
