@@ -536,9 +536,9 @@ function UIManager:CreateSeparator(parent, anchor, offsetY)
   local Cell = ns.Cell or _G.Cell
   local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
   local separator = parent:CreateTexture(nil, "ARTWORK")
-  separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6)  -- Cell's standard for separators
+  separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6) -- Cell's standard for separators
   separator:SetSize(250, 1)
-  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15)  -- Changed back to -15 for tighter spacing
+  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -15) -- Changed back to -15 for tighter spacing
   return separator
 end
 
@@ -677,7 +677,7 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 
   -- Section header
   local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -5)  -- Changed from -10 to -5 for tighter spacing
+  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -5) -- Changed from -10 to -5 for tighter spacing
   header:SetText(L["Cell - Unit Frames"] or "Cell- Unit Frames")
 
   -- Add underline under the header text
@@ -698,11 +698,11 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
   pbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 242, 6)
   pbLabel:SetText("PB")
   pbLabel:SetJustifyH("CENTER")
-  
+
   -- Add vertical separator between color picker columns
   local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
   local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
-  verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)  -- Cell's standard for UI elements
+  verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7) -- Cell's standard for UI elements
   verticalSeparator:SetSize(1, 130) -- Height covers all unit frame rows
   verticalSeparator:SetPoint("TOP", header, "BOTTOMLEFT", 240, 0)
 
@@ -815,9 +815,7 @@ function Shadow:RegisterEvents()
     self.eventFrame:RegisterEvent(event)
   end
 
-  self.eventFrame:SetScript("OnEvent", function()
-    self:Update()
-  end)
+  self.eventFrame:SetScript("OnEvent", function() self:Update() end)
 
   Utils:Debug("Registered WoW events")
 end
@@ -836,9 +834,7 @@ function Shadow:RegisterCallbacks()
   }
 
   for _, callbackName in ipairs(callbacks) do
-    Cell:RegisterCallback(callbackName, function()
-      self:Update()
-    end)
+    Cell:RegisterCallback(callbackName, function() self:Update() end)
   end
 
   Utils:Debug("Registered Cell callbacks")
