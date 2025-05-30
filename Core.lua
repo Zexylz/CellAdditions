@@ -195,7 +195,7 @@ function UIManager:CreateMainPanel()
   panel:Hide()
 
   -- Create list pane
-  local listPane = Cell.CreateTitledPane(panel, L["Features"], 120, 120)
+  local listPane = Cell.CreateTitledPane(panel, L["Features"], 120, 500)
   listPane:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -5)
 
   -- Create list frame
