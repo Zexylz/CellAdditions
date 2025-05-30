@@ -450,7 +450,7 @@ end
 
 function FrameScanner:ScanUnitFrames(unitType, patterns)
   Utils:Debug("Scanning for " .. unitType .. " frames...")
-  
+
   for _, pattern in ipairs(patterns) do
     local frame = _G[pattern]
     Utils:Debug("Checking pattern '" .. pattern .. "': " .. (frame and "FOUND" or "NOT FOUND"))
@@ -627,21 +627,21 @@ function UIManager:CreateGeneralSettings(parent, settings)
     if sizeSlider.text then
       sizeSlider.text:Hide()
     end
-    
+
     -- Scan all regions for text elements
-    for _, region in pairs({sizeSlider:GetRegions()}) do
+    for _, region in pairs({ sizeSlider:GetRegions() }) do
       if region:IsObjectType("FontString") then
         region:Hide()
       end
     end
-    
+
     -- Scan all children for text elements
-    for _, child in pairs({sizeSlider:GetChildren()}) do
+    for _, child in pairs({ sizeSlider:GetChildren() }) do
       if child:IsObjectType("FontString") then
         child:Hide()
       end
       -- Check children of children too
-      for _, grandchild in pairs({child:GetChildren()}) do
+      for _, grandchild in pairs({ child:GetChildren() }) do
         if grandchild:IsObjectType("FontString") then
           grandchild:Hide()
         end
