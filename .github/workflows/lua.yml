@@ -21,13 +21,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Lua
-        uses: leafo/gh-actions-lua@v9
+        uses: leafo/gh-actions-lua@v11
         with:
           luaVersion: 5.1
-          cache: false
 
       - name: Setup Lua + Luarocks
-        uses: leafo/gh-actions-luarocks@v4
+        uses: leafo/gh-actions-luarocks@v5
 
       - name: Cache luarocks packages
         uses: actions/cache@v4
