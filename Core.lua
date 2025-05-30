@@ -497,7 +497,7 @@ function CellIntegration:CreateUtilitiesMenu(parent)
     { text = L["Additions"], id = "additions" },
   }
 
-  -- Calculate width based on longest text
+  -- Calculate width based on longest text (matching Cell's method)
   local dummyText = menu:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
   local maxWidth = 0
   for _, item in ipairs(menuItems) do
@@ -507,7 +507,7 @@ function CellIntegration:CreateUtilitiesMenu(parent)
       maxWidth = textWidth
     end
   end
-  local width = math.ceil(maxWidth + 30)
+  local width = math.ceil(maxWidth + 13)  -- Use Cell's exact padding of +13
 
   -- Create buttons
   local buttons = {}
