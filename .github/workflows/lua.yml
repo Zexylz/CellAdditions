@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -41,7 +41,7 @@ jobs:
 
       - name: Cache Lua Language Server
         id: lsp-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: |
             lua-language-server
@@ -64,25 +64,12 @@ jobs:
           cd ../..
           ./3rd/luamake/luamake rebuild
 
-
       - name: Run Lua Language Server check
         run: |
-          ./lua-language-server/bin/lua-language-server --check \
-            Core.lua \
-            Modules/Clicker.lua \
-            Modules/Shadow.lua \
-            API/FrameState.lua \
-            Media/Textures/TextureList.lua \
-            Locales/deDE.lua \
-            Locales/enUS.lua \
-            Locales/esES.lua \
-            Locales/frFR.lua \
-            Locales/itIT.lua \
-            Locales/koKR.lua \
-            Locales/ptBR.lua \
-            Locales/ruRU.lua \
-            Locales/zhCN.lua \
-            Locales/zhTW.lua
+          find . -type f -name '*.lua' \
+            ! -path './WoWStubs/*' \
+            ! -path './.github/*' \
+            -print0 | xargs -0 ./lua-language-server/bin/lua-language-server --check
 
       - name: Run luacheck (main code)
         run: |
@@ -95,10 +82,6 @@ jobs:
       - name: Check TOC Interface version
         run: |
           grep -E "^## Interface: " *.toc || echo "::warning::No Interface version found in .toc file"
-
-      #- name: Set up git remote for pushing
-      #  run: |
-      #    git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Check for changes after formatting
         id: git-diff
@@ -117,6 +100,5 @@ jobs:
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
           add: "."
-          #pull: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
