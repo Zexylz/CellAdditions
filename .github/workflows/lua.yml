@@ -20,22 +20,33 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y ninja-build unzip curl luarocks
+      - name: Setup Lua + Luarocks
+        uses: leafo/gh-actions-luarocks@v4
+
+      - name: Cache luarocks packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.luarocks
+          key: luarocks-${{ runner.os }}-v1
 
       - name: Install luacheck
-        run: sudo luarocks install luacheck
+        run: luarocks install luacheck
 
       - name: Format Lua code with Stylua
         uses: JohnnyMorganz/stylua-action@v4.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest # NOTE: we recommend pinning to a specific version in case of formatting changes
-          args: Core.lua API/ Modules/ Locales/ Media/
+          version: latest
+          args: '**/*.lua'
 
-      - name: Clone WoW API stubs
+      - name: Cache WoW API stubs
+        uses: actions/cache@v4
+        with:
+          path: WoWStubs
+          key: wowstubs-${{ hashFiles('.github/workflows/lua.yml') }}
+
+      - name: Clone WoW API stubs (if not cached)
+        if: steps.cache-wow-api-stubs.outputs.cache-hit != 'true'
         run: |
           git clone --depth=1 https://github.com/Ketho/vscode-wow-api.git WoWStubs
 
@@ -64,41 +75,24 @@ jobs:
           cd ../..
           ./3rd/luamake/luamake rebuild
 
-
       - name: Run Lua Language Server check
         run: |
-          ./lua-language-server/bin/lua-language-server --check \
-            Core.lua \
-            Modules/Clicker.lua \
-            Modules/Shadow.lua \
-            API/FrameState.lua \
-            Media/Textures/TextureList.lua \
-            Locales/deDE.lua \
-            Locales/enUS.lua \
-            Locales/esES.lua \
-            Locales/frFR.lua \
-            Locales/itIT.lua \
-            Locales/koKR.lua \
-            Locales/ptBR.lua \
-            Locales/ruRU.lua \
-            Locales/zhCN.lua \
-            Locales/zhTW.lua
+          find . -type f -name '*.lua' \
+            ! -path './WoWStubs/*' \
+            ! -path './.github/*' \
+            -print0 | xargs -0 ./lua-language-server/bin/lua-language-server --check
 
       - name: Run luacheck (main code)
         run: |
-          luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc || true
+          luacheck Core.lua API/ Modules/ Media/ --config .luacheckrc || echo "::warning::Luacheck reported issues"
 
       - name: Run luacheck (Locales - no line length check)
         run: |
-          luacheck Locales/ --config .luacheckrc --no-max-line-length || true
+          luacheck Locales/ --config .luacheckrc --no-max-line-length || echo "::warning::Luacheck reported issues"
 
       - name: Check TOC Interface version
         run: |
           grep -E "^## Interface: " *.toc || echo "::warning::No Interface version found in .toc file"
-
-      #- name: Set up git remote for pushing
-      #  run: |
-      #    git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Check for changes after formatting
         id: git-diff
@@ -117,6 +111,5 @@ jobs:
           author_email: github-actions@github.com
           message: "style: auto-format code with stylua"
           add: "."
-          #pull: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
