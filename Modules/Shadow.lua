@@ -737,7 +737,7 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
     local hbFrame = CreateFrame("Button", nil, parent)
     hbFrame:SetSize(20, 16)
     hbFrame:SetPoint("BOTTOM", firstHealthPicker, "TOP", 0, 5)
-    
+
     local hbLabel = hbFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     hbLabel:SetPoint("CENTER", hbFrame, "CENTER", 0, 0)
     hbLabel:SetText("HB")
@@ -746,7 +746,7 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
     local pbFrame = CreateFrame("Button", nil, parent)
     pbFrame:SetSize(20, 16)
     pbFrame:SetPoint("BOTTOM", firstPowerPicker, "TOP", 0, 5)
-    
+
     local pbLabel = pbFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     pbLabel:SetPoint("CENTER", pbFrame, "CENTER", 0, 0)
     pbLabel:SetText("PB")
