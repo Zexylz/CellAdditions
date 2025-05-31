@@ -537,17 +537,6 @@ function UIManager:New(settingsManager, shadowManager)
   return instance
 end
 
--- Helper function to create consistent separators
-function UIManager:CreateSeparator(parent, anchor, offsetY)
-  local Cell = ns.Cell or _G.Cell
-  local accentColor = Cell.GetAccentColorTable and Cell.GetAccentColorTable() or { 1, 1, 1 }
-  local separator = parent:CreateTexture(nil, "ARTWORK")
-  separator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6) -- Cell's standard for separators
-  separator:SetSize(250, 1)
-  separator:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 5, offsetY or -25) -- Changed from -15 to -25 for more spacing
-  return separator
-end
-
 function UIManager:CreateSettings(parent)
   local Cell = ns.Cell or _G.Cell
   if not Cell then
@@ -558,16 +547,10 @@ function UIManager:CreateSettings(parent)
   local container = parent
   local settings = self.settingsManager:GetAll()
 
-  -- Create sections with consistent separators
+  -- Create sections without separators
   local lastElement = self:CreateGeneralSettings(container, settings)
-
-  -- Add separator before frame type settings
-  local separator1 = self:CreateSeparator(container, lastElement)
-  lastElement = self:CreateFrameTypeSettings(container, settings, separator1)
-
-  -- Add separator before unit frame settings
-  local separator2 = self:CreateSeparator(container, lastElement)
-  self:CreateUnitFrameSettings(container, settings, separator2)
+  lastElement = self:CreateFrameTypeSettings(container, settings, lastElement)
+  self:CreateUnitFrameSettings(container, settings, lastElement)
 
   -- Calculate and set proper content height
   local totalHeight = 400 -- Base height for all the content
@@ -608,12 +591,23 @@ function UIManager:CreateGeneralSettings(parent, settings)
 
   -- Shadow size slider
   local sizeLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  sizeLabel:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -20)
+  sizeLabel:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -15)
   sizeLabel:SetText(L["Shadow Size"] or "Shadow Size")
 
   local sizeSlider = Cell.CreateSlider("", parent, 1, 15, 240, 1)
-  sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -5)
+  sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -2)
   sizeSlider:SetValue(settings.shadowSize)
+
+  -- Min/Max value labels positioned at bottom corners of slider
+  local minLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  minLabel:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", 0, -5)
+  minLabel:SetText("1")
+  minLabel:SetTextColor(0.7, 0.7, 0.7, 1)
+
+  local maxLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+  maxLabel:SetPoint("TOPRIGHT", sizeSlider, "BOTTOMRIGHT", 0, -5)
+  maxLabel:SetText("15")
+  maxLabel:SetTextColor(0.7, 0.7, 0.7, 1)
 
   -- Try to hide Cell's built-in value display after a short delay
   C_Timer.After(0.1, function()
@@ -655,13 +649,13 @@ function UIManager:CreateGeneralSettings(parent, settings)
     self:TriggerShadowUpdate()
   end
 
-  -- Add some spacing after the slider by creating an invisible spacer
+  -- Add some spacing after the min/max labels by creating an invisible spacer
   local spacer = parent:CreateTexture(nil, "ARTWORK")
-  spacer:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", 0, -15)
+  spacer:SetPoint("TOPLEFT", minLabel, "BOTTOMLEFT", 0, -10)
   spacer:SetSize(1, 1)
   spacer:SetColorTexture(0, 0, 0, 0)
 
-  return spacer -- Return spacer instead of slider so next section has proper spacing
+  return spacer
 end
 
 function UIManager:CreateFrameTypeSettings(parent, settings, anchor)
@@ -717,9 +711,9 @@ end
 function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
   local Cell = ns.Cell or _G.Cell
 
-  -- Section header
+  -- Section header with extra padding
   local header = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_TITLE")
-  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -5) -- Changed from -10 to -5 for tighter spacing
+  header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
   header:SetText(L["Cell - Unit Frames"] or "Cell- Unit Frames")
 
   -- Add underline under the header text
@@ -729,23 +723,6 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
   local textWidth = header:GetStringWidth()
   underline:SetSize(textWidth, 1)
   underline:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
-
-  -- Column headers - positioned to align with color pickers
-  local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  hbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 215, 6)
-  hbLabel:SetText("HB")
-  hbLabel:SetJustifyH("CENTER")
-
-  local pbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  pbLabel:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 242, 6)
-  pbLabel:SetText("PB")
-  pbLabel:SetJustifyH("CENTER")
-
-  -- Add vertical separator between color picker columns
-  local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
-  verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7) -- Cell's standard for UI elements
-  verticalSeparator:SetSize(1, 130) -- Height covers all unit frame rows
-  verticalSeparator:SetPoint("TOP", header, "BOTTOMLEFT", 240, 0)
 
   local lastElement = header
 
@@ -757,7 +734,11 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
     { key = "Pet", name = L["Pet Frame"] or "Pet Frame" },
   }
 
-  for _, unitFrame in ipairs(unitFrames) do
+  -- Store references to first row color pickers for header positioning
+  local firstHealthPicker = nil
+  local firstPowerPicker = nil
+
+  for i, unitFrame in ipairs(unitFrames) do
     local unitSettings = settings.unitFrames[unitFrame.key]
 
     -- Checkbox
@@ -786,16 +767,41 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
     local powerColor = unitSettings.powerColor
     powerPicker:SetColor(powerColor[1], powerColor[2], powerColor[3], powerColor[4])
 
+    -- Store first row pickers for header positioning
+    if i == 1 then
+      firstHealthPicker = healthPicker
+      firstPowerPicker = powerPicker
+    end
+
     lastElement = cb
+  end
+
+  -- Create column headers anchored to the first row's color pickers
+  if firstHealthPicker and firstPowerPicker then
+    local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    hbLabel:SetPoint("BOTTOM", firstHealthPicker, "TOP", 0, 5)
+    hbLabel:SetText("HB")
+    hbLabel:SetJustifyH("CENTER")
+
+    local pbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    pbLabel:SetPoint("BOTTOM", firstPowerPicker, "TOP", 0, 5)
+    pbLabel:SetText("PB")
+    pbLabel:SetJustifyH("CENTER")
+
+    -- Add vertical separator between color picker columns
+    local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
+    verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)
+    verticalSeparator:SetSize(1, 140)
+    verticalSeparator:SetPoint("TOP", hbLabel, "BOTTOM", 14, 10)
   end
 
   return lastElement
 end
 
 function UIManager:TriggerShadowUpdate()
-  if ns.Shadow and ns.Shadow.shadowManager then
-    ns.Shadow.shadowManager:UpdateAllShadows()
-  end
+    if ns.Shadow and ns.Shadow.shadowManager then
+      ns.Shadow.shadowManager:UpdateAllShadows()
+    end
 end
 
 -- ============================================================================
@@ -940,9 +946,9 @@ ns.addon.Shadow = shadowInstance
 ns.ShadowClass = Shadow
 
 -- Register module (immediate)
-if ns.RegisterModule then
-  ns.RegisterModule(shadowInstance)
-  Utils:Debug("Shadow module registered with module system")
-else
-  Utils:Debug("Module system not available for registration")
-end
+  if ns.RegisterModule then
+    ns.RegisterModule(shadowInstance)
+    Utils:Debug("Shadow module registered with module system")
+  else
+    Utils:Debug("Module system not available for registration")
+  end

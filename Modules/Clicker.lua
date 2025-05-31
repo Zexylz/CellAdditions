@@ -795,7 +795,7 @@ function UIManager:RefreshTextureDropdown(dropdown)
 
   dropdown:SetSelectedValue(currentSelection)
 
-  print("[CellAdditions] Texture list refreshed: " .. (#newTextures - 1) .. " textures found")
+  Utils:Debug("[CellAdditions] Texture list refreshed: " .. (#newTextures - 1) .. " textures found")
 end
 
 function UIManager:TriggerLayoutUpdate()
@@ -905,7 +905,7 @@ function Clicker:SetEnabled(enabled)
   local wasEnabled = self.settingsManager:Get("enabled")
   self.settingsManager:Set("enabled", enabled)
 
-  print("[CellAdditions] Clicker module " .. (enabled and "enabled" or "disabled"))
+  Utils:Debug("[CellAdditions] Clicker module " .. (enabled and "enabled" or "disabled"))
 
   if enabled and not wasEnabled then
     self:Initialize()

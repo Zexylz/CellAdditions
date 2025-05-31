@@ -113,7 +113,7 @@ L["Warning"] = "Warnung"
 L["Info"] = "Info"
 
 -- Utilities Menu
-L["Raid Tools"] = "Schlachtzug-Werkzeuge"
+L["Raid Tools"] = "Raid Tools"
 L["Spell Request"] = "Zauber-Anfrage"
 L["Dispel Request"] = "Bannen-Anfrage"
 L["Quick Assist"] = "Schnellhilfe"

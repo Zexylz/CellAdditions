@@ -395,13 +395,6 @@ function UIManager:ShowFeatureSettings(index)
     region:Hide()
   end
 
-  -- Add separator line
-  local accentColor = self:GetAccentColor()
-  local line = content:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.6) -- Cell's standard for separators
-  line:SetSize(250, 1)
-  line:SetPoint("TOPLEFT", content, "TOPLEFT", 5, -5)
-
   -- Handle Shadow module specially
   if module.id == "Shadow" and module.CreateSettings then
     module:CreateSettings(content)
@@ -424,7 +417,7 @@ function UIManager:ShowFeatureSettings(index)
           CellAdditionsDB.clickerSettings.enabled = checked
         end
       end)
-      enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
+      enableCb:SetPoint("TOPLEFT", content, "TOPLEFT", 5, -10)
 
       -- Set initial checked state from correct location
       local isEnabled = true -- default
@@ -444,7 +437,7 @@ function UIManager:ShowFeatureSettings(index)
 
   local enableCb = _G.CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
   enableCb:SetSize(24, 24)
-  enableCb:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 5, -10)
+  enableCb:SetPoint("TOPLEFT", content, "TOPLEFT", 5, -10)
 
   enableCb.text = enableCb:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
   enableCb.text:SetText(L["Enable"] .. " " .. module.name)
