@@ -799,9 +799,9 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 end
 
 function UIManager:TriggerShadowUpdate()
-    if ns.Shadow and ns.Shadow.shadowManager then
-      ns.Shadow.shadowManager:UpdateAllShadows()
-    end
+  if ns.Shadow and ns.Shadow.shadowManager then
+    ns.Shadow.shadowManager:UpdateAllShadows()
+  end
 end
 
 -- ============================================================================
@@ -946,9 +946,9 @@ ns.addon.Shadow = shadowInstance
 ns.ShadowClass = Shadow
 
 -- Register module (immediate)
-  if ns.RegisterModule then
-    ns.RegisterModule(shadowInstance)
-    Utils:Debug("Shadow module registered with module system")
-  else
-    Utils:Debug("Module system not available for registration")
-  end
+if ns.RegisterModule then
+  ns.RegisterModule(shadowInstance)
+  Utils:Debug("Shadow module registered with module system")
+else
+  Utils:Debug("Module system not available for registration")
+end
