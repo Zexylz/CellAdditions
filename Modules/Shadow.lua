@@ -598,60 +598,15 @@ function UIManager:CreateGeneralSettings(parent, settings)
   sizeSlider:SetPoint("TOPLEFT", sizeLabel, "BOTTOMLEFT", 0, -2)
   sizeSlider:SetValue(settings.shadowSize)
 
-  -- Min/Max value labels positioned at bottom corners of slider
-  local minLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  minLabel:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", 0, -5)
-  minLabel:SetText("1")
-  minLabel:SetTextColor(0.7, 0.7, 0.7, 1)
-
-  local maxLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-  maxLabel:SetPoint("TOPRIGHT", sizeSlider, "BOTTOMRIGHT", 0, -5)
-  maxLabel:SetText("15")
-  maxLabel:SetTextColor(0.7, 0.7, 0.7, 1)
-
-  -- Try to hide Cell's built-in value display after a short delay
-  C_Timer.After(0.1, function()
-    -- Try multiple approaches to find and hide the value text
-    if sizeSlider.value then
-      sizeSlider.value:Hide()
-    end
-    if sizeSlider.valueText then
-      sizeSlider.valueText:Hide()
-    end
-    if sizeSlider.text then
-      sizeSlider.text:Hide()
-    end
-
-    -- Scan all regions for text elements
-    for _, region in pairs({ sizeSlider:GetRegions() }) do
-      if region:IsObjectType("FontString") then
-        region:Hide()
-      end
-    end
-
-    -- Scan all children for text elements
-    for _, child in pairs({ sizeSlider:GetChildren() }) do
-      if child:IsObjectType("FontString") then
-        child:Hide()
-      end
-      -- Check children of children too
-      for _, grandchild in pairs({ child:GetChildren() }) do
-        if grandchild:IsObjectType("FontString") then
-          grandchild:Hide()
-        end
-      end
-    end
-  end)
-
   sizeSlider.afterValueChangedFn = function(value)
     local newValue = math.floor(value)
     self.settingsManager:Set("shadowSize", newValue)
     self:TriggerShadowUpdate()
   end
 
-  -- Add some spacing after the min/max labels by creating an invisible spacer
+  -- Add some spacing after the slider by creating an invisible spacer
   local spacer = parent:CreateTexture(nil, "ARTWORK")
-  spacer:SetPoint("TOPLEFT", minLabel, "BOTTOMLEFT", 0, -10)
+  spacer:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", 0, -15)
   spacer:SetSize(1, 1)
   spacer:SetColorTexture(0, 0, 0, 0)
 
@@ -763,7 +718,7 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
       unitSettings.powerColor = { r, g, b, a }
       self:TriggerShadowUpdate()
     end)
-    powerPicker:SetPoint("TOPLEFT", cb, "TOPLEFT", 245, 1)
+    powerPicker:SetPoint("TOPLEFT", cb, "TOPLEFT", 247, 1)
     local powerColor = unitSettings.powerColor
     powerPicker:SetColor(powerColor[1], powerColor[2], powerColor[3], powerColor[4])
 
@@ -778,21 +733,36 @@ function UIManager:CreateUnitFrameSettings(parent, settings, anchor)
 
   -- Create column headers anchored to the first row's color pickers
   if firstHealthPicker and firstPowerPicker then
-    local hbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    hbLabel:SetPoint("BOTTOM", firstHealthPicker, "TOP", 0, 5)
+    -- Create interactive button frames instead of font strings for better mouse handling
+    local hbFrame = CreateFrame("Button", nil, parent)
+    hbFrame:SetSize(20, 16)
+    hbFrame:SetPoint("BOTTOM", firstHealthPicker, "TOP", 0, 5)
+    
+    local hbLabel = hbFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    hbLabel:SetPoint("CENTER", hbFrame, "CENTER", 0, 0)
     hbLabel:SetText("HB")
     hbLabel:SetJustifyH("CENTER")
 
-    local pbLabel = parent:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    pbLabel:SetPoint("BOTTOM", firstPowerPicker, "TOP", 0, 5)
+    local pbFrame = CreateFrame("Button", nil, parent)
+    pbFrame:SetSize(20, 16)
+    pbFrame:SetPoint("BOTTOM", firstPowerPicker, "TOP", 0, 5)
+    
+    local pbLabel = pbFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    pbLabel:SetPoint("CENTER", pbFrame, "CENTER", 0, 0)
     pbLabel:SetText("PB")
     pbLabel:SetJustifyH("CENTER")
+
+    -- Add tooltips to explain what HB and PB mean
+    if ns.Tooltip then
+      ns.Tooltip:Attach(hbFrame, "Health Bar")
+      ns.Tooltip:Attach(pbFrame, "Power Bar")
+    end
 
     -- Add vertical separator between color picker columns
     local verticalSeparator = parent:CreateTexture(nil, "ARTWORK")
     verticalSeparator:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 0.7)
-    verticalSeparator:SetSize(1, 140)
-    verticalSeparator:SetPoint("TOP", hbLabel, "BOTTOM", 14, 10)
+    verticalSeparator:SetSize(1, 130)
+    verticalSeparator:SetPoint("TOP", hbLabel, "BOTTOM", 14, 12)
   end
 
   return lastElement

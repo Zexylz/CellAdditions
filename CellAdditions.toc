@@ -19,6 +19,7 @@ Media\Textures\TextureList.lua
 
 # API
 API\FrameState.lua
+API\Tooltip.lua
     
 # Modules
 Modules\Shadow.lua
