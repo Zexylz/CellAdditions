@@ -114,8 +114,8 @@ L["Info"] = "Info"
 
 -- Utilities Menu
 L["Raid Tools"] = "Raid Tools"
-L["Spell Request"] = "Zauber-Anfrage"
-L["Dispel Request"] = "Bannen-Anfrage"
-L["Quick Assist"] = "Schnellhilfe"
-L["Quick Cast"] = "Schnellzauber"
-L["Utilities"] = "Utilitäten"
+L["Spell Request"] = "Zauber anfragen"
+L["Dispel Request"] = "Dispel-Anfrage"
+L["Quick Assist"] = "Quick Assist"
+L["Quick Cast"] = "Quick Cast"
+L["Utilities"] = "Utilities"
