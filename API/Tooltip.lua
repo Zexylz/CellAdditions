@@ -15,7 +15,6 @@ local TOOLTIP_STRATA = "TOOLTIP"
 local TOOLTIP_LEVEL = 100
 local PADDING = 8
 local BORDER_SIZE = 1
-local FADE_DURATION = 1
 local SHOW_DELAY = 0
 local MAX_WIDTH = 300
 
@@ -188,7 +187,7 @@ function TooltipInstance:PositionRelativeTo(targetFrame)
   end
   
   -- Get mouse cursor position
-  local cursorX, cursorY = GetCursorPosition()
+  local cursorX, cursorY = _G.GetCursorPosition()
   local scale = UIParent:GetEffectiveScale()
   cursorX = cursorX / scale
   cursorY = cursorY / scale
