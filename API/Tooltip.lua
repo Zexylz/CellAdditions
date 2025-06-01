@@ -185,47 +185,22 @@ function TooltipInstance:UpdateContent()
 end
 
 function TooltipInstance:PositionRelativeTo(targetFrame)
-  if not self.frame or not targetFrame then
+  if not self.frame then
     return
   end
   
-  -- Get target frame position and size
-  local targetWidth = targetFrame:GetWidth()
-  local targetHeight = targetFrame:GetHeight()
+  -- Get mouse cursor position
+  local cursorX, cursorY = GetCursorPosition()
+  local scale = UIParent:GetEffectiveScale()
+  cursorX = cursorX / scale
+  cursorY = cursorY / scale
   
-  -- Calculate position based on anchor
-  local point, relativePoint, x, y
-  
-  if self.anchor == "TOP" then
-    point = "BOTTOM"
-    relativePoint = "TOP"
-    x = self.offset.x
-    y = self.offset.y
-  elseif self.anchor == "BOTTOM" then
-    point = "TOP"
-    relativePoint = "BOTTOM"
-    x = self.offset.x
-    y = self.offset.y
-  elseif self.anchor == "LEFT" then
-    point = "RIGHT"
-    relativePoint = "LEFT"
-    x = self.offset.x
-    y = self.offset.y
-  elseif self.anchor == "RIGHT" then
-    point = "LEFT"
-    relativePoint = "RIGHT"
-    x = self.offset.x
-    y = self.offset.y
-  else
-    -- Default to BOTTOM
-    point = "TOP"
-    relativePoint = "BOTTOM"
-    x = self.offset.x
-    y = self.offset.y
-  end
+  -- Position tooltip relative to cursor
+  local offsetX = self.offset.x or 15 -- Default offset from cursor
+  local offsetY = self.offset.y or -15
   
   self.frame:ClearAllPoints()
-  self.frame:SetPoint(point, targetFrame, relativePoint, x, y)
+  self.frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", cursorX + offsetX, cursorY + offsetY)
   
   -- Check if tooltip goes off-screen and adjust if needed
   self:CheckScreenBounds()
@@ -291,6 +266,9 @@ function TooltipInstance:Show(targetFrame)
       self.frame:Show()
       self.isVisible = true
       
+      -- Enable mouse tracking to follow cursor
+      self:StartMouseTracking()
+      
       Utils:Debug("Tooltip shown immediately")
     end
   else
@@ -301,9 +279,36 @@ function TooltipInstance:Show(targetFrame)
         self.frame:Show()
         self.isVisible = true
         
+        -- Enable mouse tracking to follow cursor
+        self:StartMouseTracking()
+        
         Utils:Debug("Tooltip shown after delay")
       end
     end)
+  end
+end
+
+function TooltipInstance:StartMouseTracking()
+  if not self.frame then
+    return
+  end
+  
+  -- Create a tracker frame that follows the mouse
+  if not self.mouseTracker then
+    self.mouseTracker = CreateFrame("Frame")
+    self.mouseTracker:SetScript("OnUpdate", function()
+      if self.isVisible and self.frame then
+        self:PositionRelativeTo()
+      end
+    end)
+  end
+  
+  self.mouseTracker:Show()
+end
+
+function TooltipInstance:StopMouseTracking()
+  if self.mouseTracker then
+    self.mouseTracker:Hide()
   end
 end
 
@@ -318,6 +323,9 @@ function TooltipInstance:Hide()
     self.showTimer:Cancel()
     self.showTimer = nil
   end
+  
+  -- Stop mouse tracking
+  self:StopMouseTracking()
   
   self.isVisible = false
   
@@ -340,6 +348,12 @@ function TooltipInstance:Destroy()
   if self.showTimer then
     self.showTimer:Cancel()
     self.showTimer = nil
+  end
+  
+  if self.mouseTracker then
+    self.mouseTracker:Hide()
+    self.mouseTracker:SetParent(nil)
+    self.mouseTracker = nil
   end
   
   Utils:Debug("Tooltip destroyed")
