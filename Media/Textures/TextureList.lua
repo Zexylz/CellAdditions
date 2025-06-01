@@ -31,10 +31,6 @@ local TEXTURE_FILES = [[
 
 healthbar1.tga
 health_bar_blue.tga
-border_fancy.tga
-frame_gold.tga
-simple_overlay.tga
-crystal_texture.tga
 
 
 ]]

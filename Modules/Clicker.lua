@@ -132,9 +132,10 @@ function TextureManager:ScanTextures()
     return self.availableTextures
   end
 
-  -- Always include "none" option first
+  -- Always include "none" and "frame" options first
   self.availableTextures = {
     { id = "none", name = "No Texture", file = nil },
+    { id = "frame", name = "Frame Outline", file = "frame" }, -- Special frame visualization
   }
 
   -- Get user-registered textures from the simple list
@@ -179,19 +180,26 @@ function TextureManager:CreateTextureFrame(parent, textureId, settings)
     return nil
   end
 
-  local texturePath = self:GetTexturePath(textureId)
-  if not texturePath then
-    return nil
-  end
-
   local textureFrame = CreateFrame("Frame", nil, parent)
   textureFrame:SetAllPoints(parent)
   textureFrame:SetFrameLevel(parent:GetFrameLevel() + 2)
 
   local texture = textureFrame:CreateTexture(nil, "OVERLAY")
   texture:SetAllPoints(textureFrame)
-  texture:SetTexture(texturePath)
-  texture:SetAlpha(settings.textureAlpha or 0.8)
+  
+  -- Handle special "frame" texture for visualization
+  if textureId == "frame" then
+    texture:SetTexture("Interface\\Buttons\\WHITE8X8")
+    texture:SetVertexColor(1, 1, 1, 0.4) -- White outline
+  else
+    local texturePath = self:GetTexturePath(textureId)
+    if not texturePath then
+      return nil
+    end
+    texture:SetTexture(texturePath)
+    texture:SetAlpha(settings.textureAlpha or 0.8)
+  end
+  
   texture:SetBlendMode(settings.textureBlendMode or "BLEND")
 
   textureFrame.texture = texture
@@ -211,14 +219,22 @@ function TextureManager:UpdateTexture(textureFrame, textureId, settings)
     return
   end
 
-  local texturePath = self:GetTexturePath(textureId)
-  if texturePath then
-    textureFrame.texture:SetTexture(texturePath)
-    textureFrame.texture:SetAlpha(settings.textureAlpha or 0.8)
+  -- Handle special "frame" texture for visualization
+  if textureId == "frame" then
+    textureFrame.texture:SetTexture("Interface\\Buttons\\WHITE8X8")
+    textureFrame.texture:SetVertexColor(1, 1, 1, settings.textureAlpha or 0.3) -- White outline
     textureFrame.texture:SetBlendMode(settings.textureBlendMode or "BLEND")
     textureFrame:Show()
   else
-    textureFrame:Hide()
+    local texturePath = self:GetTexturePath(textureId)
+    if texturePath then
+      textureFrame.texture:SetTexture(texturePath)
+      textureFrame.texture:SetAlpha(settings.textureAlpha or 0.8)
+      textureFrame.texture:SetBlendMode(settings.textureBlendMode or "BLEND")
+      textureFrame:Show()
+    else
+      textureFrame:Hide()
+    end
   end
 end
 
@@ -324,6 +340,8 @@ function FrameManager:CreateDebugOverlay(unitButton, debugEnabled)
   overlay:SetShown(debugEnabled)
   return overlay
 end
+
+
 
 function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
   local unitID = unitButton.unitid or unitButton.unit or unitButton:GetAttribute("unit")
