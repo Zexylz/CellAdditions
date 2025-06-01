@@ -186,7 +186,7 @@ function TextureManager:CreateTextureFrame(parent, textureId, settings)
 
   local texture = textureFrame:CreateTexture(nil, "OVERLAY")
   texture:SetAllPoints(textureFrame)
-  
+
   -- Handle special "frame" texture for visualization
   if textureId == "frame" then
     texture:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -199,7 +199,7 @@ function TextureManager:CreateTextureFrame(parent, textureId, settings)
     texture:SetTexture(texturePath)
     texture:SetAlpha(settings.textureAlpha or 0.8)
   end
-  
+
   texture:SetBlendMode(settings.textureBlendMode or "BLEND")
 
   textureFrame.texture = texture
@@ -340,8 +340,6 @@ function FrameManager:CreateDebugOverlay(unitButton, debugEnabled)
   overlay:SetShown(debugEnabled)
   return overlay
 end
-
-
 
 function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
   local unitID = unitButton.unitid or unitButton.unit or unitButton:GetAttribute("unit")
