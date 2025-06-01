@@ -185,20 +185,20 @@ function TooltipInstance:PositionRelativeTo(targetFrame)
   if not self.frame then
     return
   end
-  
+
   -- Get mouse cursor position
   local cursorX, cursorY = _G.GetCursorPosition()
   local scale = UIParent:GetEffectiveScale()
   cursorX = cursorX / scale
   cursorY = cursorY / scale
-  
+
   -- Position tooltip relative to cursor
   local offsetX = self.offset.x or 15 -- Default offset from cursor
   local offsetY = self.offset.y or -15
-  
+
   self.frame:ClearAllPoints()
   self.frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", cursorX + offsetX, cursorY + offsetY)
-  
+
   -- Check if tooltip goes off-screen and adjust if needed
   self:CheckScreenBounds()
 end
@@ -262,10 +262,10 @@ function TooltipInstance:Show(targetFrame)
       self.frame:SetAlpha(1) -- Show at full opacity immediately
       self.frame:Show()
       self.isVisible = true
-      
+
       -- Enable mouse tracking to follow cursor
       self:StartMouseTracking()
-      
+
       Utils:Debug("Tooltip shown immediately")
     end
   else
@@ -275,10 +275,10 @@ function TooltipInstance:Show(targetFrame)
         self.frame:SetAlpha(1) -- Show at full opacity immediately
         self.frame:Show()
         self.isVisible = true
-        
+
         -- Enable mouse tracking to follow cursor
         self:StartMouseTracking()
-        
+
         Utils:Debug("Tooltip shown after delay")
       end
     end)
@@ -289,7 +289,7 @@ function TooltipInstance:StartMouseTracking()
   if not self.frame then
     return
   end
-  
+
   -- Create a tracker frame that follows the mouse
   if not self.mouseTracker then
     self.mouseTracker = CreateFrame("Frame")
@@ -299,7 +299,7 @@ function TooltipInstance:StartMouseTracking()
       end
     end)
   end
-  
+
   self.mouseTracker:Show()
 end
 
@@ -320,10 +320,10 @@ function TooltipInstance:Hide()
     self.showTimer:Cancel()
     self.showTimer = nil
   end
-  
+
   -- Stop mouse tracking
   self:StopMouseTracking()
-  
+
   self.isVisible = false
 
   if self.frame then
@@ -346,13 +346,13 @@ function TooltipInstance:Destroy()
     self.showTimer:Cancel()
     self.showTimer = nil
   end
-  
+
   if self.mouseTracker then
     self.mouseTracker:Hide()
     self.mouseTracker:SetParent(nil)
     self.mouseTracker = nil
   end
-  
+
   Utils:Debug("Tooltip destroyed")
 end
 
