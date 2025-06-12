@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 110105
 ## Title: Cell Additions
 ## Notes: Additional features for the Cell addon
 ## Author: Semlock
