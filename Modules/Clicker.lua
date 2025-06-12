@@ -369,9 +369,7 @@ function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
     end
   end)
 
-  unitClickButton:SetScript("OnLeave", function(self)
-    GameTooltip:Hide()
-  end)
+  unitClickButton:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
 
   hitbox.unitButton = unitClickButton
 end
