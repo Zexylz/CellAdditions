@@ -341,8 +341,6 @@ function FrameManager:CreateDebugOverlay(unitButton, debugEnabled)
   return overlay
 end
 
-
-
 function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
   local unitID = unitButton.unitid or unitButton.unit or unitButton:GetAttribute("unit")
   if not unitID then
@@ -361,6 +359,19 @@ function FrameManager:ConfigureSecureAttributes(hitbox, unitButton)
   unitClickButton:SetAttribute("useparent-unit", true)
   unitClickButton:SetAttribute("*unitframe", "true")
   unitClickButton:SetAttribute("*unithasmenu", "true")
+
+  -- Add unit tooltip functionality (same as health bar)
+  unitClickButton:SetScript("OnEnter", function(self)
+    if UnitExists(unitID) then
+      GameTooltip_SetDefaultAnchor(GameTooltip, self)
+      GameTooltip:SetUnit(unitID)
+      GameTooltip:Show()
+    end
+  end)
+
+  unitClickButton:SetScript("OnLeave", function(self)
+    GameTooltip:Hide()
+  end)
 
   hitbox.unitButton = unitClickButton
 end
